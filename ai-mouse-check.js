@@ -449,24 +449,41 @@
       checks.continuous = continuousRatio > 0.4 && pointsPerSecond > 15;
 
       // 6. Straight line detection
-      let maxStraight = 0;
-      let currentStraight = 0;
-      for (let i = 2; i < points.length; i++) {
-        const ax = points[i - 1].x - points[i - 2].x;
-        const ay = points[i - 1].y - points[i - 2].y;
-        const bx = points[i].x - points[i - 1].x;
-        const by = points[i].y - points[i - 1].y;
-        const cross = Math.abs(ax * by - ay * bx);
-        const mag = Math.sqrt(ax * ax + ay * ay) * Math.sqrt(bx * bx + by * by);
+      // AI moves in straight lines with zero deviation
+      // Measure how much actual path deviates from best-fit line
 
-        if (mag > 1 && cross / mag < 0.05) {
-          currentStraight++;
-          maxStraight = Math.max(maxStraight, currentStraight);
-        } else {
-          currentStraight = 0;
+      const segmentSize = 20;
+      let tooStraightSegments = 0;
+      let totalSegments = 0;
+
+      for (let start = 0; start < points.length - segmentSize; start += 10) {
+        const segment = points.slice(start, start + segmentSize);
+
+        const x1 = segment[0].x, y1 = segment[0].y;
+        const x2 = segment[segment.length - 1].x, y2 = segment[segment.length - 1].y;
+        const lineLen = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+
+        if (lineLen < 10) continue;
+
+        let totalDeviation = 0;
+        for (let i = 1; i < segment.length - 1; i++) {
+          const px = segment[i].x, py = segment[i].y;
+          const dist = Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1) / lineLen;
+          totalDeviation += dist;
+        }
+
+        const avgDeviation = totalDeviation / (segment.length - 2);
+        const deviationRatio = avgDeviation / lineLen;
+
+        totalSegments++;
+        // Only flag as too straight if deviation is < 0.5% AND < 2px absolute
+        if (deviationRatio < 0.005 && avgDeviation < 2) {
+          tooStraightSegments++;
         }
       }
-      checks.notRobotic = maxStraight < 10;
+
+      const straightRatio = totalSegments > 0 ? tooStraightSegments / totalSegments : 0;
+      checks.notRobotic = straightRatio < 0.5;
 
       return checks;
     }

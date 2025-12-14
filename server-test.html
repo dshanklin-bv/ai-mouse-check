@@ -122,16 +122,16 @@
 
     .target {
       position: absolute;
-      width: 50px;
-      height: 50px;
+      width: 80px;
+      height: 80px;
       background: #238636;
       border-radius: 50%;
       display: none;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 28px;
       color: #fff;
-      box-shadow: 0 0 20px rgba(35, 134, 54, 0.4);
+      box-shadow: 0 0 30px rgba(35, 134, 54, 0.5);
       pointer-events: none;
     }
 
@@ -389,8 +389,8 @@
           <div class="stat-label">Targets</div>
         </div>
         <div class="stat">
-          <div class="stat-value" id="duration">0s</div>
-          <div class="stat-label">Duration</div>
+          <div class="stat-value" id="duration">30s</div>
+          <div class="stat-label">Time Left</div>
         </div>
         <div class="stat">
           <div class="stat-value" id="serverStatus">—</div>
@@ -398,7 +398,7 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" id="verifyBtn" disabled>Verify with Server</button>
+      <button class="btn btn-primary" id="verifyBtn" disabled>Keep Trying</button>
       <button class="btn btn-secondary" id="resetBtn">Reset</button>
     </section>
 
@@ -453,6 +453,8 @@
     let targetX = 0, targetY = 0, targetMoveTime = 0;
     let startTime = null;
     let isCapturing = false;
+    let timeoutId = null;
+    const TIMEOUT_SECONDS = 30;
 
     // Check server status on load
     fetch('http://localhost:3847/api/health')
@@ -471,8 +473,8 @@
       const margin = 60;
       targetX = margin + Math.random() * (rect.width - margin * 2);
       targetY = margin + Math.random() * (rect.height - margin * 2);
-      target.style.left = (targetX - 25) + 'px';
-      target.style.top = (targetY - 25) + 'px';
+      target.style.left = (targetX - 40) + 'px';
+      target.style.top = (targetY - 40) + 'px';
       targetMoveTime = Date.now();
     }
 
@@ -481,9 +483,49 @@
       captureArea.classList.add('active');
       prompt.classList.add('hidden');
       target.style.display = 'flex';
-      if (!startTime) startTime = Date.now();
+      if (!startTime) {
+        startTime = Date.now();
+        // Start 30 second timeout
+        timeoutId = setTimeout(() => {
+          handleTimeout();
+        }, TIMEOUT_SECONDS * 1000);
+      }
       moveTarget();
     });
+
+    function handleTimeout() {
+      isCapturing = false;
+      captureArea.classList.remove('active');
+      target.style.display = 'none';
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Time Expired';
+
+      // Show as failed test
+      serverResponse.classList.add('show');
+      document.getElementById('statusBadge').textContent = 'FAILED';
+      document.getElementById('statusBadge').className = 'status-badge failed';
+      document.getElementById('aiBadge').style.display = 'none';
+
+      // Show what they achieved before time ran out
+      const checkNames = ['Speed Variation', 'Path Curves', 'Micro-jitter', 'Timing', 'Continuous Flow', 'Not Robotic'];
+      let checksHtml = checkNames.map(name =>
+        `<div class="check-item failed">? ${name}</div>`
+      ).join('');
+      checksHtml += `<div class="check-item ${targetHits >= 5 ? 'passed' : 'failed'}">${targetHits >= 5 ? '✓' : '✗'} Targets (${targetHits}/5)</div>`;
+      checksHtml += `<div class="check-item failed" style="grid-column: 1 / -1;">✗ Time limit exceeded - test not completed</div>`;
+      document.getElementById('checksGrid').innerHTML = checksHtml;
+
+      document.getElementById('signatureSection').style.display = 'none';
+      document.getElementById('fullResponse').innerHTML = syntaxHighlight(JSON.stringify({
+        verified: false,
+        reason: 'time_expired',
+        message: 'Test not completed within 30 seconds',
+        pointsCollected: movementData.length,
+        targetsHit: targetHits,
+        requiredTargets: 5
+      }, null, 2));
+      document.getElementById('aiPromptSection').style.display = 'none';
+    }
 
     captureArea.addEventListener('mouseleave', () => {
       isCapturing = false;
@@ -500,9 +542,9 @@
 
       movementData.push({ x, y, t });
 
-      // Check target hit
+      // Check target hit (big easy target - but movement patterns still analyzed)
       const dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
-      if (dist < 35 && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
+      if (dist < 50 && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
         targetHits++;
         document.getElementById('targetHits').textContent = targetHits;
         moveTarget();
@@ -510,11 +552,15 @@
 
       // Update stats
       document.getElementById('pointCount').textContent = movementData.length;
-      document.getElementById('duration').textContent = ((t - startTime) / 1000).toFixed(1) + 's';
+      const elapsed = (t - startTime) / 1000;
+      const remaining = Math.max(0, TIMEOUT_SECONDS - elapsed);
+      document.getElementById('duration').textContent = remaining.toFixed(0) + 's';
+      document.getElementById('duration').style.color = remaining < 10 ? '#f85149' : '#58a6ff';
 
       // Enable verify button
       if (movementData.length > 20 && targetHits >= 5) {
         verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify with Server';
       }
 
       // Draw path (keep last 300 points)
@@ -532,6 +578,8 @@
     });
 
     resetBtn.addEventListener('click', () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = null;
       movementData = [];
       targetHits = 0;
       startTime = null;
@@ -541,13 +589,17 @@
       prompt.classList.remove('hidden');
       captureArea.classList.remove('active');
       verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Keep Trying';
       serverResponse.classList.remove('show');
       document.getElementById('pointCount').textContent = '0';
       document.getElementById('targetHits').textContent = '0';
-      document.getElementById('duration').textContent = '0s';
+      document.getElementById('duration').textContent = '30s';
+      document.getElementById('aiPromptSection').style.display = 'block';
     });
 
     verifyBtn.addEventListener('click', async () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = null;
       verifyBtn.disabled = true;
       verifyBtn.textContent = 'Verifying...';
 
