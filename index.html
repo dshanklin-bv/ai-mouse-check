@@ -256,7 +256,7 @@ npm install ai-mouse-check
     </section>
 
     <section class="demo-section">
-      <h2>Usage</h2>
+      <h2>Basic Usage</h2>
       <div class="code-section">
         <code><span class="keyword">const</span> checker = <span class="keyword">new</span> <span class="function">AIMouseCheck</span>({
   timeout: <span class="string">10000</span>,
@@ -272,6 +272,130 @@ npm install ai-mouse-check
 });
 
 checker.<span class="function">verify</span>();</code>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Cryptographic Signing for Database Entries</h2>
+      <p>For tamper-proof verification, send movement data to your server to generate a cryptographic signature that proves human verification occurred.</p>
+
+      <h3 style="color: #06d6a0; font-size: 1rem; margin: 20px 0 10px;">Client-Side: Send to Server</h3>
+      <div class="code-section">
+        <code><span class="keyword">const</span> checker = <span class="keyword">new</span> <span class="function">AIMouseCheck</span>({
+  <span class="function">onSuccess</span>: <span class="keyword">async</span> (result) => {
+    <span class="comment">// Send movement data to server for cryptographic signing</span>
+    <span class="keyword">const</span> response = <span class="keyword">await</span> <span class="function">fetch</span>(<span class="string">'/api/human-verify'</span>, {
+      method: <span class="string">'POST'</span>,
+      headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> },
+      body: JSON.<span class="function">stringify</span>({
+        recordId: <span class="string">'task-123'</span>,
+        movementData: result.movementData,
+        clientSignature: result.signature
+      })
+    });
+
+    <span class="keyword">const</span> { signature, timestamp } = <span class="keyword">await</span> response.<span class="function">json</span>();
+    console.log(<span class="string">'Server signature:'</span>, signature);
+  }
+});</code>
+      </div>
+
+      <h3 style="color: #06d6a0; font-size: 1rem; margin: 20px 0 10px;">Server-Side: Generate Signature (Node.js)</h3>
+      <div class="code-section">
+        <code><span class="keyword">import</span> crypto <span class="keyword">from</span> <span class="string">'crypto'</span>;
+
+<span class="comment">// Secret key - store securely (env var, secrets manager)</span>
+<span class="keyword">const</span> SECRET_KEY = process.env.VERIFICATION_SECRET;
+
+app.<span class="function">post</span>(<span class="string">'/api/human-verify'</span>, (req, res) => {
+  <span class="keyword">const</span> { recordId, movementData, clientSignature } = req.body;
+
+  <span class="comment">// Hash the movement data</span>
+  <span class="keyword">const</span> movementHash = crypto
+    .<span class="function">createHash</span>(<span class="string">'sha256'</span>)
+    .<span class="function">update</span>(JSON.<span class="function">stringify</span>(movementData))
+    .<span class="function">digest</span>(<span class="string">'hex'</span>);
+
+  <span class="comment">// Generate cryptographic signature</span>
+  <span class="keyword">const</span> timestamp = Date.<span class="function">now</span>();
+  <span class="keyword">const</span> signature = crypto
+    .<span class="function">createHmac</span>(<span class="string">'sha256'</span>, SECRET_KEY)
+    .<span class="function">update</span>(<span class="string">`\${recordId}:\${movementHash}:\${timestamp}`</span>)
+    .<span class="function">digest</span>(<span class="string">'hex'</span>);
+
+  <span class="comment">// Store in database with the record</span>
+  db.<span class="function">run</span>(<span class="string">`
+    UPDATE records SET
+      human_verified_at = datetime('now'),
+      verification_signature = ?
+    WHERE id = ?
+  `</span>, [signature, recordId]);
+
+  res.<span class="function">json</span>({ verified: <span class="keyword">true</span>, signature, timestamp });
+});</code>
+      </div>
+
+      <h3 style="color: #06d6a0; font-size: 1rem; margin: 20px 0 10px;">Database Schema</h3>
+      <div class="code-section">
+        <code><span class="comment">-- Add verification columns to your table</span>
+<span class="keyword">ALTER TABLE</span> records <span class="keyword">ADD COLUMN</span> human_verified_at <span class="string">DATETIME</span>;
+<span class="keyword">ALTER TABLE</span> records <span class="keyword">ADD COLUMN</span> verification_signature <span class="string">TEXT</span>;
+
+<span class="comment">-- Query verified records</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> records
+<span class="keyword">WHERE</span> human_verified_at <span class="keyword">IS NOT NULL</span>;</code>
+      </div>
+
+      <h3 style="color: #06d6a0; font-size: 1rem; margin: 20px 0 10px;">Verify Signature Later</h3>
+      <div class="code-section">
+        <code><span class="keyword">function</span> <span class="function">verifySignature</span>(recordId, movementHash, timestamp, signature) {
+  <span class="keyword">const</span> expected = crypto
+    .<span class="function">createHmac</span>(<span class="string">'sha256'</span>, SECRET_KEY)
+    .<span class="function">update</span>(<span class="string">`\${recordId}:\${movementHash}:\${timestamp}`</span>)
+    .<span class="function">digest</span>(<span class="string">'hex'</span>);
+
+  <span class="keyword">return</span> crypto.<span class="function">timingSafeEqual</span>(
+    Buffer.<span class="function">from</span>(signature),
+    Buffer.<span class="function">from</span>(expected)
+  );
+}</code>
+      </div>
+
+      <div class="features" style="margin-top: 25px;">
+        <div class="feature">
+          <h3>Tamper-Proof</h3>
+          <p>HMAC signature proves the verification happened and data wasn't modified</p>
+        </div>
+        <div class="feature">
+          <h3>Auditable</h3>
+          <p>Timestamp and signature stored with each record for compliance</p>
+        </div>
+        <div class="feature">
+          <h3>Verifiable</h3>
+          <p>Re-compute signature anytime to verify authenticity</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>Use Cases</h2>
+      <div class="features">
+        <div class="feature">
+          <h3>Task Completion</h3>
+          <p>Require human approval before marking tasks complete in project management systems</p>
+        </div>
+        <div class="feature">
+          <h3>Financial Approval</h3>
+          <p>Verify human authorization for transactions, refunds, or account changes</p>
+        </div>
+        <div class="feature">
+          <h3>Content Moderation</h3>
+          <p>Ensure a human reviewed and approved content before publishing</p>
+        </div>
+        <div class="feature">
+          <h3>AI Guardrails</h3>
+          <p>Prevent AI agents from autonomously completing sensitive operations</p>
+        </div>
       </div>
     </section>
 
