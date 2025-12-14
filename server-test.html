@@ -5,12 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Mouse Check - Server-Side Test</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
@@ -18,24 +13,9 @@
       color: #c9d1d9;
       line-height: 1.6;
     }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-      color: #58a6ff;
-    }
-
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+    header { text-align: center; margin-bottom: 30px; }
+    h1 { font-size: 2rem; margin-bottom: 8px; color: #58a6ff; }
     .badge {
       display: inline-block;
       background: #238636;
@@ -46,12 +26,7 @@
       font-weight: 600;
       margin-bottom: 10px;
     }
-
-    .tagline {
-      color: #8b949e;
-      font-size: 1rem;
-    }
-
+    .tagline { color: #8b949e; font-size: 1rem; }
     .warning {
       background: rgba(187, 128, 9, 0.15);
       border: 1px solid #bb8009;
@@ -61,7 +36,6 @@
       font-size: 14px;
       color: #d29922;
     }
-
     .section {
       background: #161b22;
       border: 1px solid #30363d;
@@ -69,28 +43,18 @@
       padding: 24px;
       margin-bottom: 20px;
     }
-
-    h2 {
-      font-size: 1.1rem;
-      margin-bottom: 12px;
-      color: #58a6ff;
-    }
-
+    h2 { font-size: 1.1rem; margin-bottom: 12px; color: #58a6ff; }
     .capture-area {
       background: #0d1117;
       border: 2px dashed #30363d;
       border-radius: 8px;
-      height: 300px;
+      height: 350px;
       position: relative;
       cursor: crosshair;
       overflow: hidden;
     }
-
-    .capture-area.active {
-      border-color: #58a6ff;
-      border-style: solid;
-    }
-
+    .capture-area.active { border-color: #58a6ff; border-style: solid; }
+    .capture-area.bot-mode { border-color: #a371f7; cursor: default; }
     .capture-area .prompt {
       position: absolute;
       top: 50%;
@@ -99,19 +63,8 @@
       text-align: center;
       color: #8b949e;
     }
-
-    .capture-area .prompt.hidden {
-      display: none;
-    }
-
-    .capture-area svg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-
+    .capture-area .prompt.hidden { display: none; }
+    .capture-area svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     .capture-area path {
       fill: none;
       stroke: #58a6ff;
@@ -119,48 +72,48 @@
       stroke-linecap: round;
       opacity: 0.7;
     }
-
+    .capture-area path.bot-path { stroke: #a371f7; }
     .target {
       position: absolute;
-      width: 80px;
-      height: 80px;
-      background: #238636;
-      border-radius: 50%;
       display: none;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
       color: #fff;
-      box-shadow: 0 0 30px rgba(35, 134, 54, 0.5);
       pointer-events: none;
+      transition: all 0.15s ease-out;
     }
-
+    .target.good {
+      background: #238636;
+      box-shadow: 0 0 30px rgba(35, 134, 54, 0.5);
+    }
+    .target.decoy {
+      background: #da3633;
+      box-shadow: 0 0 30px rgba(218, 54, 51, 0.5);
+    }
+    .target.circle { border-radius: 50%; }
+    .target.square { border-radius: 8px; }
+    .target.diamond { border-radius: 4px; transform: rotate(45deg); }
+    .target.diamond span { transform: rotate(-45deg); }
+    .bot-cursor {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #a371f7;
+      border-radius: 50%;
+      pointer-events: none;
+      display: none;
+      box-shadow: 0 0 15px rgba(163, 113, 247, 0.8);
+      z-index: 100;
+    }
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 12px;
       margin-top: 16px;
     }
-
-    .stat {
-      background: #0d1117;
-      padding: 12px;
-      border-radius: 6px;
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #58a6ff;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #8b949e;
-      text-transform: uppercase;
-    }
-
+    .stat { background: #0d1117; padding: 12px; border-radius: 6px; text-align: center; }
+    .stat-value { font-size: 1.3rem; font-weight: 600; color: #58a6ff; }
+    .stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
     .btn {
       display: inline-block;
       padding: 10px 20px;
@@ -173,70 +126,22 @@
       margin-right: 8px;
       margin-top: 12px;
     }
-
-    .btn-primary {
-      background: #238636;
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: #2ea043;
-    }
-
-    .btn-primary:disabled {
-      background: #21262d;
-      color: #8b949e;
-      cursor: not-allowed;
-    }
-
-    .btn-secondary {
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-    }
-
-    .btn-secondary:hover {
-      background: #30363d;
-    }
-
-    .server-response {
-      margin-top: 20px;
-      display: none;
-    }
-
-    .server-response.show {
-      display: block;
-    }
-
-    .response-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .status-badge {
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .status-badge.verified {
-      background: #238636;
-      color: #fff;
-    }
-
-    .status-badge.failed {
-      background: #da3633;
-      color: #fff;
-    }
-
-    .status-badge.ai-detected {
-      background: #a371f7;
-      color: #fff;
-    }
-
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-primary:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+    .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+    .btn-secondary:hover { background: #30363d; }
+    .btn-bot { background: #a371f7; color: #fff; }
+    .btn-bot:hover { background: #8957e5; }
+    .btn-bot:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+    .server-response { margin-top: 20px; display: none; }
+    .server-response.show { display: block; }
+    .response-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-badge.verified { background: #238636; color: #fff; }
+    .status-badge.failed { background: #da3633; color: #fff; }
+    .status-badge.ai-detected { background: #a371f7; color: #fff; }
+    .status-badge.env-warning { background: #bb8009; color: #fff; }
     pre {
       background: #0d1117;
       border: 1px solid #30363d;
@@ -246,19 +151,16 @@
       font-size: 12px;
       color: #8b949e;
     }
-
     pre .key { color: #79c0ff; }
     pre .string { color: #a5d6ff; }
     pre .number { color: #56d4dd; }
     pre .boolean { color: #ff7b72; }
-
     .checks-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
       margin: 16px 0;
     }
-
     .check-item {
       display: flex;
       align-items: center;
@@ -268,17 +170,8 @@
       border-radius: 6px;
       font-size: 13px;
     }
-
-    .check-item.passed {
-      background: rgba(35, 134, 54, 0.2);
-      color: #3fb950;
-    }
-
-    .check-item.failed {
-      background: rgba(218, 54, 51, 0.2);
-      color: #f85149;
-    }
-
+    .check-item.passed { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
+    .check-item.failed { background: rgba(218, 54, 51, 0.2); color: #f85149; }
     .signature-box {
       background: #0d1117;
       border: 1px solid #238636;
@@ -290,24 +183,9 @@
       font-size: 11px;
       color: #3fb950;
     }
-
-    .ai-prompt-section {
-      margin-top: 20px;
-      background: #0d1117;
-      border-radius: 8px;
-      padding: 16px;
-    }
-
-    .ai-prompt-section h4 {
-      font-size: 13px;
-      margin-bottom: 10px;
-      color: #58a6ff;
-    }
-
-    .ai-prompt-box {
-      position: relative;
-    }
-
+    .ai-prompt-section { margin-top: 20px; background: #0d1117; border-radius: 8px; padding: 16px; }
+    .ai-prompt-section h4 { font-size: 13px; margin-bottom: 10px; color: #58a6ff; }
+    .ai-prompt-box { position: relative; }
     .ai-prompt-box textarea {
       width: 100%;
       height: 180px;
@@ -320,7 +198,6 @@
       padding: 12px;
       resize: vertical;
     }
-
     .copy-btn {
       position: absolute;
       top: 8px;
@@ -334,26 +211,28 @@
       cursor: pointer;
       font-weight: 600;
     }
-
-    .copy-btn:hover {
-      background: #2ea043;
-    }
-
-    footer {
-      text-align: center;
-      padding: 20px;
+    .copy-btn:hover { background: #2ea043; }
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 12px;
       color: #8b949e;
-      font-size: 13px;
     }
-
-    footer a {
-      color: #58a6ff;
-      text-decoration: none;
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
     }
+    .legend-dot.green { background: #238636; }
+    .legend-dot.red { background: #da3633; }
+    footer { text-align: center; padding: 20px; color: #8b949e; font-size: 13px; }
+    footer a { color: #58a6ff; text-decoration: none; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" style="max-width: 1400px;">
     <header>
       <span class="badge">SERVER-SIDE VERIFICATION</span>
       <h1>AI Mouse Check - Server Test</h1>
@@ -361,45 +240,185 @@
     </header>
 
     <div class="warning">
-      <strong>Local testing only.</strong> Run <code>npm run server</code> first. This page sends movement data to <code>http://localhost:3847/api/verify</code> for server-side analysis.
+      <strong>Local testing only.</strong> Run <code>npm run server</code> first. Auto-verifies after 5 targets.
     </div>
 
-    <section class="section">
-      <h2>Capture Movement</h2>
-      <p style="color: #8b949e; margin-bottom: 12px; font-size: 14px;">
-        Move your mouse in the box below. Hit the green targets. When ready, click "Verify with Server".
-      </p>
+    <!-- Two-column layout -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
 
-      <div class="capture-area" id="captureArea">
-        <svg><path id="pathEl" d=""></path></svg>
-        <div class="target" id="target">✓</div>
-        <div class="prompt" id="prompt">
-          <div style="font-size: 16px; margin-bottom: 6px;">Move mouse here to start</div>
-          <div style="font-size: 13px;">Hit 5 targets, then verify</div>
+      <!-- LEFT COLUMN: Game -->
+      <section class="section" style="margin-bottom: 0;">
+        <h2>Capture Movement</h2>
+        <p style="color: #8b949e; margin-bottom: 12px; font-size: 14px;">
+          Hit <strong style="color: #3fb950;">GREEN</strong> targets.
+          <strong style="color: #f85149;">AVOID RED</strong> decoys!
+        </p>
+
+        <div class="capture-area" id="captureArea" style="height: 300px;">
+          <svg><path id="pathEl" d=""></path></svg>
+          <div class="target good circle" id="target"><span>✓</span></div>
+          <div class="target decoy circle" id="decoyTarget"><span>✗</span></div>
+          <div class="bot-cursor" id="botCursor"></div>
+          <div class="prompt" id="prompt">
+            <div style="font-size: 16px; margin-bottom: 6px;">Move mouse here to start</div>
+            <div style="font-size: 13px;">Hit 5 green targets, avoid red decoys</div>
+          </div>
         </div>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot green"></div> Hit these</div>
+          <div class="legend-item"><div class="legend-dot red"></div> Avoid these</div>
+        </div>
+
+        <div class="stats" style="grid-template-columns: repeat(5, 1fr);">
+          <div class="stat">
+            <div class="stat-value" id="pointCount">0</div>
+            <div class="stat-label">Points</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="targetHits">0/5</div>
+            <div class="stat-label">Targets</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="decoyHits">0</div>
+            <div class="stat-label">Decoys Hit</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="duration">30s</div>
+            <div class="stat-label">Time Left</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="serverStatus">—</div>
+            <div class="stat-label">Server</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+          <button class="btn btn-primary" id="verifyBtn" disabled>Keep Trying</button>
+          <button class="btn btn-secondary" id="resetBtn">Reset</button>
+          <button class="btn btn-bot" id="botBtn">🤖 Bot</button>
+          <button class="btn btn-bot" id="bot20Btn" style="background: #8957e5;">🤖 20x</button>
+          <button class="btn btn-bot" id="bot500Btn" style="background: #6e40c9;">🤖 500x</button>
+          <button class="btn btn-bot" id="bot25kBtn" style="background: #553098;">🤖 25k</button>
+        </div>
+
+        <!-- Last Result (compact) -->
+        <div id="lastResult" style="margin-top: 16px; padding: 12px; background: #0d1117; border-radius: 8px; display: none;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span id="lastResultBadge" style="padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;">—</span>
+            <span id="lastResultChecks" style="color: #8b949e; font-size: 12px;"></span>
+          </div>
+          <div id="lastResultChecksGrid" style="display: flex; flex-wrap: wrap; gap: 4px; font-size: 11px;"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Confusion Matrix -->
+      <section class="section" style="margin-bottom: 0;">
+        <!-- Last Attempt Banner -->
+        <div id="lastAttemptBanner" style="display: none; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+          <div style="font-size: 14px; color: #8b949e; margin-bottom: 4px;">Last attempt</div>
+          <div id="lastAttemptResult" style="font-size: 24px; font-weight: bold;"></div>
+        </div>
+
+        <h2>Confusion Matrix</h2>
+        <p style="color: #8b949e; font-size: 12px; margin-bottom: 12px;">
+          Human tests should PASS. Bot tests should FAIL (be detected).
+        </p>
+
+        <!-- Matrix Grid -->
+        <div style="display: grid; grid-template-columns: 80px 1fr 1fr; gap: 4px; font-size: 11px; margin-bottom: 16px;">
+          <div></div>
+          <div style="text-align: center; color: #8b949e; padding: 6px;">Pred: Human</div>
+          <div style="text-align: center; color: #8b949e; padding: 6px;">Pred: Bot</div>
+
+          <div style="color: #8b949e; padding: 6px; display: flex; align-items: center; font-size: 10px;">Human</div>
+          <div id="cmHumanPassed" style="background: rgba(35, 134, 54, 0.3); border: 2px solid #238636; border-radius: 6px; padding: 12px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #3fb950;">0</div>
+            <div style="font-size: 9px; color: #3fb950;">✓ Correct</div>
+          </div>
+          <div id="cmHumanFailed" style="background: rgba(218, 54, 51, 0.3); border: 2px solid #da3633; border-radius: 6px; padding: 12px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #f85149;">0</div>
+            <div style="font-size: 9px; color: #f85149;">✗ Blocked</div>
+          </div>
+
+          <div style="color: #8b949e; padding: 6px; display: flex; align-items: center; font-size: 10px;">Bot</div>
+          <div id="cmBotPassed" style="background: rgba(218, 54, 51, 0.3); border: 2px solid #da3633; border-radius: 6px; padding: 12px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #f85149;">0</div>
+            <div style="font-size: 9px; color: #f85149;">✗ Slipped!</div>
+          </div>
+          <div id="cmBotFailed" style="background: rgba(35, 134, 54, 0.3); border: 2px solid #238636; border-radius: 6px; padding: 12px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #3fb950;">0</div>
+            <div style="font-size: 9px; color: #3fb950;">✓ Caught</div>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div style="background: #0d1117; border-radius: 6px; padding: 12px; font-size: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #8b949e;">Human Pass:</span>
+              <span id="cmHumanPassRate" style="color: #3fb950; font-weight: 600;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #8b949e;">Bot Detection:</span>
+              <span id="cmBotDetectionRate" style="color: #3fb950; font-weight: 600;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #8b949e;">False Positive:</span>
+              <span id="cmFalsePositiveRate" style="color: #f85149; font-weight: 600;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #8b949e;">False Negative:</span>
+              <span id="cmFalseNegativeRate" style="color: #f85149; font-weight: 600;">--</span>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid #30363d;">
+            <span style="color: #8b949e;">Total: <span id="cmTotalHuman" style="color: #58a6ff;">0</span> human, <span id="cmTotalBot" style="color: #a371f7;">0</span> bot</span>
+            <button onclick="resetConfusionMatrix()" style="background: none; border: none; color: #f85149; cursor: pointer; font-size: 11px;">Reset</button>
+          </div>
+        </div>
+
+        <!-- Recent Results -->
+        <details style="margin-top: 12px;">
+          <summary style="cursor: pointer; color: #58a6ff; font-size: 12px;">Recent Tests</summary>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <div>
+              <div style="font-size: 11px; color: #3fb950; margin-bottom: 4px;">Human</div>
+              <div id="cmRecentHuman" style="font-size: 10px; color: #8b949e; max-height: 100px; overflow-y: auto;"></div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #a371f7; margin-bottom: 4px;">Bot</div>
+              <div id="cmRecentBot" style="font-size: 10px; color: #8b949e; max-height: 100px; overflow-y: auto;"></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+    </div><!-- end two-column -->
+
+    <section class="section" id="bot20Results" style="display: none;">
+      <h2>🤖 Bot Test Results</h2>
+      <div id="bot20Progress" style="margin-bottom: 12px; color: #8b949e;"></div>
+      <div id="bot20Summary" style="margin-bottom: 12px; font-size: 16px;"></div>
+      <div style="overflow-x: auto;">
+        <table id="bot20Table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background: #21262d;">
+              <th style="padding: 6px; border: 1px solid #30363d;">#</th>
+              <th style="padding: 6px; border: 1px solid #30363d;">Result</th>
+              <th style="padding: 6px; border: 1px solid #30363d;">Checks Failed</th>
+              <th style="padding: 6px; border: 1px solid #30363d;">Bezier Signals Triggered</th>
+            </tr>
+          </thead>
+          <tbody id="bot20Body"></tbody>
+        </table>
       </div>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value" id="pointCount">0</div>
-          <div class="stat-label">Points</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="targetHits">0</div>
-          <div class="stat-label">Targets</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="duration">30s</div>
-          <div class="stat-label">Time Left</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="serverStatus">—</div>
-          <div class="stat-label">Server</div>
-        </div>
+      <div id="histogramSection" style="display: none; margin-top: 20px;">
+        <h3 style="font-size: 14px; color: #58a6ff; margin-bottom: 12px;">Detection Rate Distribution (500 batches of 50 tests)</h3>
+        <div id="histogram" style="display: flex; align-items: flex-end; height: 150px; gap: 2px; padding: 10px; background: #0d1117; border-radius: 6px;"></div>
+        <div id="histogramLabels" style="display: flex; justify-content: space-between; font-size: 10px; color: #8b949e; margin-top: 4px;"></div>
+        <div id="histogramStats" style="margin-top: 12px; font-size: 12px; color: #8b949e;"></div>
       </div>
-
-      <button class="btn btn-primary" id="verifyBtn" disabled>Keep Trying</button>
-      <button class="btn btn-secondary" id="resetBtn">Reset</button>
     </section>
 
     <section class="section server-response" id="serverResponse">
@@ -407,6 +426,7 @@
         <h2>Server Response</h2>
         <span class="status-badge" id="statusBadge">—</span>
         <span class="status-badge ai-detected" id="aiBadge" style="display: none;">AI DETECTED</span>
+        <span class="status-badge env-warning" id="envBadge" style="display: none;">ENV WARNING</span>
       </div>
 
       <div class="checks-grid" id="checksGrid"></div>
@@ -433,6 +453,13 @@
       </div>
     </section>
 
+    <!-- Clear All Data -->
+    <div style="text-align: center; margin: 40px 0 20px; padding-top: 20px; border-top: 1px solid #30363d;">
+      <button onclick="clearAllServerData()" style="background: #da3633; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
+        🗑️ Clear All Server Results
+      </button>
+    </div>
+
     <footer>
       <a href="index.html">← Back to Demo</a> ·
       <a href="https://github.com/dshanklin-bv/ai-mouse-check">GitHub</a>
@@ -443,18 +470,38 @@
     const captureArea = document.getElementById('captureArea');
     const pathEl = document.getElementById('pathEl');
     const target = document.getElementById('target');
+    const decoyTarget = document.getElementById('decoyTarget');
+    const botCursor = document.getElementById('botCursor');
     const prompt = document.getElementById('prompt');
     const verifyBtn = document.getElementById('verifyBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const botBtn = document.getElementById('botBtn');
     const serverResponse = document.getElementById('serverResponse');
 
     let movementData = [];
     let targetHits = 0;
+    let decoyHits = 0;
     let targetX = 0, targetY = 0, targetMoveTime = 0;
+    let decoyX = 0, decoyY = 0, decoySize = 80, decoyActive = false;
+    let targetSize = 80, targetShape = 'circle';
     let startTime = null;
     let isCapturing = false;
+    let isBotMode = false;
+    let botInterval = null;
     let timeoutId = null;
+    let alreadyVerified = false;
     const TIMEOUT_SECONDS = 30;
+    const REQUIRED_TARGETS = 5;
+
+    // Environment detection
+    const envChecks = {
+      webdriver: navigator.webdriver === true,
+      headless: /HeadlessChrome/.test(navigator.userAgent),
+      automation: window.document.documentElement.getAttribute('webdriver') !== null,
+      plugins: navigator.plugins.length === 0,
+      languages: navigator.languages.length === 0
+    };
+    const envWarnings = Object.entries(envChecks).filter(([k, v]) => v).map(([k]) => k);
 
     // Check server status on load
     fetch('http://localhost:3847/api/health')
@@ -468,86 +515,117 @@
         document.getElementById('serverStatus').style.color = '#f85149';
       });
 
+    function randomSize() {
+      const sizes = [50, 65, 80, 100];
+      return sizes[Math.floor(Math.random() * sizes.length)];
+    }
+
+    function randomShape() {
+      const shapes = ['circle', 'square', 'diamond'];
+      return shapes[Math.floor(Math.random() * shapes.length)];
+    }
+
     function moveTarget() {
       const rect = captureArea.getBoundingClientRect();
-      const margin = 60;
+      const margin = 80;
+
+      // Always position the green target
       targetX = margin + Math.random() * (rect.width - margin * 2);
       targetY = margin + Math.random() * (rect.height - margin * 2);
-      target.style.left = (targetX - 40) + 'px';
-      target.style.top = (targetY - 40) + 'px';
+      targetSize = randomSize();
+      targetShape = randomShape();
+
+      target.style.width = targetSize + 'px';
+      target.style.height = targetSize + 'px';
+      target.style.left = (targetX - targetSize/2) + 'px';
+      target.style.top = (targetY - targetSize/2) + 'px';
+      target.style.fontSize = (targetSize * 0.35) + 'px';
+      target.className = 'target good ' + targetShape;
+      target.style.display = 'flex';
+
+      // 40% chance to also show a decoy nearby
+      decoyActive = Math.random() < 0.4;
+      if (decoyActive) {
+        decoySize = randomSize();
+        const decoyShape = randomShape();
+
+        // Position decoy somewhere else (not overlapping green target)
+        let attempts = 0;
+        do {
+          decoyX = margin + Math.random() * (rect.width - margin * 2);
+          decoyY = margin + Math.random() * (rect.height - margin * 2);
+          attempts++;
+        } while (
+          Math.sqrt(Math.pow(decoyX - targetX, 2) + Math.pow(decoyY - targetY, 2)) < 120
+          && attempts < 10
+        );
+
+        decoyTarget.style.width = decoySize + 'px';
+        decoyTarget.style.height = decoySize + 'px';
+        decoyTarget.style.left = (decoyX - decoySize/2) + 'px';
+        decoyTarget.style.top = (decoyY - decoySize/2) + 'px';
+        decoyTarget.style.fontSize = (decoySize * 0.35) + 'px';
+        decoyTarget.className = 'target decoy ' + decoyShape;
+        decoyTarget.style.display = 'flex';
+      } else {
+        decoyTarget.style.display = 'none';
+      }
+
       targetMoveTime = Date.now();
     }
 
     captureArea.addEventListener('mouseenter', () => {
+      if (isBotMode) return;
       isCapturing = true;
       captureArea.classList.add('active');
       prompt.classList.add('hidden');
       target.style.display = 'flex';
       if (!startTime) {
         startTime = Date.now();
-        // Start 30 second timeout
-        timeoutId = setTimeout(() => {
-          handleTimeout();
-        }, TIMEOUT_SECONDS * 1000);
+        timeoutId = setTimeout(() => handleTimeout(), TIMEOUT_SECONDS * 1000);
       }
       moveTarget();
     });
 
-    function handleTimeout() {
-      isCapturing = false;
-      captureArea.classList.remove('active');
-      target.style.display = 'none';
-      verifyBtn.disabled = true;
-      verifyBtn.textContent = 'Time Expired';
-
-      // Show as failed test
-      serverResponse.classList.add('show');
-      document.getElementById('statusBadge').textContent = 'FAILED';
-      document.getElementById('statusBadge').className = 'status-badge failed';
-      document.getElementById('aiBadge').style.display = 'none';
-
-      // Show what they achieved before time ran out
-      const checkNames = ['Speed Variation', 'Path Curves', 'Micro-jitter', 'Timing', 'Continuous Flow', 'Not Robotic'];
-      let checksHtml = checkNames.map(name =>
-        `<div class="check-item failed">? ${name}</div>`
-      ).join('');
-      checksHtml += `<div class="check-item ${targetHits >= 5 ? 'passed' : 'failed'}">${targetHits >= 5 ? '✓' : '✗'} Targets (${targetHits}/5)</div>`;
-      checksHtml += `<div class="check-item failed" style="grid-column: 1 / -1;">✗ Time limit exceeded - test not completed</div>`;
-      document.getElementById('checksGrid').innerHTML = checksHtml;
-
-      document.getElementById('signatureSection').style.display = 'none';
-      document.getElementById('fullResponse').innerHTML = syntaxHighlight(JSON.stringify({
-        verified: false,
-        reason: 'time_expired',
-        message: 'Test not completed within 30 seconds',
-        pointsCollected: movementData.length,
-        targetsHit: targetHits,
-        requiredTargets: 5
-      }, null, 2));
-      document.getElementById('aiPromptSection').style.display = 'none';
-    }
-
     captureArea.addEventListener('mouseleave', () => {
+      if (isBotMode) return;
       isCapturing = false;
       captureArea.classList.remove('active');
     });
 
     captureArea.addEventListener('mousemove', (e) => {
-      if (!isCapturing) return;
+      if (!isCapturing || isBotMode) return;
+      handleMove(e.clientX - captureArea.getBoundingClientRect().left,
+                 e.clientY - captureArea.getBoundingClientRect().top);
+    });
 
-      const rect = captureArea.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+    function handleMove(x, y) {
       const t = Date.now();
-
       movementData.push({ x, y, t });
 
-      // Check target hit (big easy target - but movement patterns still analyzed)
-      const dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
-      if (dist < 50 && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
+      // Check green target hit
+      const distToTarget = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
+      const hitRadius = targetSize / 2 + 10;
+
+      if (distToTarget < hitRadius && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
         targetHits++;
-        document.getElementById('targetHits').textContent = targetHits;
+        document.getElementById('targetHits').textContent = targetHits + '/' + REQUIRED_TARGETS;
         moveTarget();
+      }
+
+      // Check decoy hit (if active)
+      if (decoyActive) {
+        const distToDecoy = Math.sqrt(Math.pow(x - decoyX, 2) + Math.pow(y - decoyY, 2));
+        const decoyHitRadius = decoySize / 2 + 10;
+
+        if (distToDecoy < decoyHitRadius && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
+          decoyHits++;
+          document.getElementById('decoyHits').textContent = decoyHits;
+          document.getElementById('decoyHits').style.color = '#f85149';
+          // Hide the decoy after hitting it
+          decoyTarget.style.display = 'none';
+          decoyActive = false;
+        }
       }
 
       // Update stats
@@ -557,15 +635,26 @@
       document.getElementById('duration').textContent = remaining.toFixed(0) + 's';
       document.getElementById('duration').style.color = remaining < 10 ? '#f85149' : '#58a6ff';
 
-      // Enable verify button
-      if (movementData.length > 20 && targetHits >= 5) {
+      // Auto-verify when 5 targets hit (same as bot does)
+      if (movementData.length > 50 && targetHits >= REQUIRED_TARGETS && !alreadyVerified) {
+        alreadyVerified = true;
+        // Stop the game immediately
+        isCapturing = false;
+        captureArea.classList.remove('active');
+        target.style.display = 'none';
+        decoyTarget.style.display = 'none';
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = null;
+        // Now verify
         verifyBtn.disabled = false;
-        verifyBtn.textContent = 'Verify with Server';
+        verifyBtn.textContent = 'Verifying...';
+        verifyBtn.click();
       }
 
-      // Draw path (keep last 300 points)
-      if (movementData.length > 300) {
-        movementData = movementData.slice(-300);
+      // Draw path (randomized window size)
+      const maxPoints = 200 + Math.floor(Math.random() * 200);
+      if (movementData.length > maxPoints) {
+        movementData = movementData.slice(-maxPoints);
       }
 
       if (movementData.length > 1) {
@@ -575,30 +664,347 @@
         }
         pathEl.setAttribute('d', d);
       }
-    });
+    }
 
-    resetBtn.addEventListener('click', () => {
+    function handleTimeout() {
+      isCapturing = false;
+      captureArea.classList.remove('active');
+      target.style.display = 'none';
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Time Expired';
+
+      serverResponse.classList.add('show');
+      document.getElementById('statusBadge').textContent = 'FAILED';
+      document.getElementById('statusBadge').className = 'status-badge failed';
+      document.getElementById('aiBadge').style.display = 'none';
+
+      const checkNames = ['Speed Variation', 'Path Curves', 'Micro-jitter', 'Timing', 'Continuous Flow', 'Not Robotic'];
+      let checksHtml = checkNames.map(name => `<div class="check-item failed">? ${name}</div>`).join('');
+      checksHtml += `<div class="check-item ${targetHits >= REQUIRED_TARGETS ? 'passed' : 'failed'}">${targetHits >= REQUIRED_TARGETS ? '✓' : '✗'} Targets (${targetHits}/${REQUIRED_TARGETS})</div>`;
+      checksHtml += `<div class="check-item ${decoyHits === 0 ? 'passed' : 'failed'}">${decoyHits === 0 ? '✓' : '✗'} Decoys Avoided (${decoyHits} hit)</div>`;
+      checksHtml += `<div class="check-item failed" style="grid-column: 1 / -1;">✗ Time limit exceeded</div>`;
+      document.getElementById('checksGrid').innerHTML = checksHtml;
+
+      document.getElementById('signatureSection').style.display = 'none';
+      document.getElementById('fullResponse').innerHTML = syntaxHighlight(JSON.stringify({
+        verified: false,
+        reason: 'time_expired',
+        pointsCollected: movementData.length,
+        targetsHit: targetHits,
+        decoysHit: decoyHits
+      }, null, 2));
+      document.getElementById('aiPromptSection').style.display = 'none';
+    }
+
+    function resetAll(keepLastResult = false) {
       if (timeoutId) clearTimeout(timeoutId);
+      if (botInterval) clearInterval(botInterval);
       timeoutId = null;
+      botInterval = null;
       movementData = [];
       targetHits = 0;
+      decoyHits = 0;
+      decoyActive = false;
       startTime = null;
       isCapturing = false;
+      isBotMode = false;
+      alreadyVerified = false;
       pathEl.setAttribute('d', '');
+      pathEl.classList.remove('bot-path');
       target.style.display = 'none';
+      decoyTarget.style.display = 'none';
+      botCursor.style.display = 'none';
       prompt.classList.remove('hidden');
-      captureArea.classList.remove('active');
+      captureArea.classList.remove('active', 'bot-mode');
       verifyBtn.disabled = true;
       verifyBtn.textContent = 'Keep Trying';
-      serverResponse.classList.remove('show');
+      botBtn.disabled = false;
+      botBtn.textContent = '🤖 Bot';
+      if (!keepLastResult) {
+        serverResponse.classList.remove('show');
+        document.getElementById('lastResult').style.display = 'none';
+      }
       document.getElementById('pointCount').textContent = '0';
-      document.getElementById('targetHits').textContent = '0';
+      document.getElementById('targetHits').textContent = '0/' + REQUIRED_TARGETS;
+      document.getElementById('decoyHits').textContent = '0';
+      document.getElementById('decoyHits').style.color = '#58a6ff';
       document.getElementById('duration').textContent = '30s';
+      document.getElementById('duration').style.color = '#58a6ff';
       document.getElementById('aiPromptSection').style.display = 'block';
-    });
+      // Clear bot 20x results
+      document.getElementById('bot20Results').style.display = 'none';
+      document.getElementById('bot20Body').innerHTML = '';
+      document.getElementById('bot20Summary').innerHTML = '';
+      document.getElementById('bot20Progress').textContent = '';
+    }
 
+    resetBtn.addEventListener('click', () => resetAll(false));
+
+    // ========== SMART BOT SIMULATION (ghost-cursor style) ==========
+    // This demonstrates what a real attacker could do with human-cursor libs
+    // Uses: Bezier curves, Fitts's Law timing, Gaussian noise, micro-corrections
+
+    botBtn.addEventListener('click', startBotDemo);
+
+    // Gaussian random (Box-Muller transform)
+    function gaussianRandom(mean = 0, stdDev = 1) {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      return z * stdDev + mean;
+    }
+
+    // Generate Bezier control points for curved path
+    function generateBezierPath(startX, startY, endX, endY) {
+      const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+
+      // Add perpendicular offset for curve (varies by distance)
+      const perpX = -(endY - startY) / dist;
+      const perpY = (endX - startX) / dist;
+      const curveAmount = gaussianRandom(0, dist * 0.15);
+
+      // Control point with randomized curve
+      const cp1x = midX + perpX * curveAmount + gaussianRandom(0, 15);
+      const cp1y = midY + perpY * curveAmount + gaussianRandom(0, 15);
+
+      return { cp1x, cp1y };
+    }
+
+    // Quadratic Bezier interpolation
+    function bezierPoint(t, p0, p1, p2) {
+      const mt = 1 - t;
+      return mt * mt * p0 + 2 * mt * t * p1 + t * t * p2;
+    }
+
+    // Check if a point is too close to the decoy
+    function isTooCloseToDecoy(x, y, buffer = 60) {
+      if (!decoyActive) return false;
+      const dist = Math.sqrt((x - decoyX) ** 2 + (y - decoyY) ** 2);
+      return dist < (decoySize / 2 + buffer);
+    }
+
+    // Check if path segment intersects with decoy
+    function pathIntersectsDecoy(startX, startY, endX, endY) {
+      if (!decoyActive) return false;
+
+      // Check multiple points along the line
+      for (let t = 0; t <= 1; t += 0.1) {
+        const x = startX + (endX - startX) * t;
+        const y = startY + (endY - startY) * t;
+        if (isTooCloseToDecoy(x, y, 50)) return true;
+      }
+      return false;
+    }
+
+    // Calculate waypoint to go around decoy
+    function getAvoidanceWaypoint(startX, startY, endX, endY) {
+      // Vector from start to end
+      const dx = endX - startX;
+      const dy = endY - startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Perpendicular direction
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+
+      // Check which side of the decoy to go around
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+
+      // Try both sides, pick the one further from decoy
+      const offset = 80 + decoySize / 2;
+      const side1X = midX + perpX * offset;
+      const side1Y = midY + perpY * offset;
+      const side2X = midX - perpX * offset;
+      const side2Y = midY - perpY * offset;
+
+      const dist1 = Math.sqrt((side1X - decoyX) ** 2 + (side1Y - decoyY) ** 2);
+      const dist2 = Math.sqrt((side2X - decoyX) ** 2 + (side2Y - decoyY) ** 2);
+
+      if (dist1 > dist2) {
+        return { x: side1X + gaussianRandom(0, 10), y: side1Y + gaussianRandom(0, 10) };
+      } else {
+        return { x: side2X + gaussianRandom(0, 10), y: side2Y + gaussianRandom(0, 10) };
+      }
+    }
+
+    // Generate points along path with Fitts's Law timing
+    function generateHumanPath(startX, startY, endX, endY, avoidDecoy = true) {
+      // Check if we need to avoid the decoy
+      if (avoidDecoy && pathIntersectsDecoy(startX, startY, endX, endY)) {
+        const waypoint = getAvoidanceWaypoint(startX, startY, endX, endY);
+        // Generate path to waypoint, then waypoint to target
+        const path1 = generateHumanPath(startX, startY, waypoint.x, waypoint.y, false);
+        const path2 = generateHumanPath(waypoint.x, waypoint.y, endX, endY, false);
+        return [...path1, ...path2];
+      }
+
+      const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+      const { cp1x, cp1y } = generateBezierPath(startX, startY, endX, endY);
+
+      // Fitts's Law: movement time ~ a + b * log2(D/W + 1)
+      const movementTime = 200 + dist * 1.5 + gaussianRandom(0, 50);
+      const numPoints = Math.max(15, Math.floor(movementTime / 12));
+
+      const points = [];
+      for (let i = 0; i <= numPoints; i++) {
+        // Ease-in-out timing (accelerate then decelerate)
+        let t = i / numPoints;
+        t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+        let x = bezierPoint(t, startX, cp1x, endX);
+        let y = bezierPoint(t, startY, cp1y, endY);
+
+        // Add micro-jitter (physiological tremor simulation)
+        // More jitter in middle of movement, less at start/end
+        const jitterAmount = Math.sin(Math.PI * (i / numPoints)) * 2;
+        x += gaussianRandom(0, jitterAmount);
+        y += gaussianRandom(0, jitterAmount);
+
+        // Variable timing between points
+        const baseInterval = movementTime / numPoints;
+        const interval = baseInterval + gaussianRandom(0, 5);
+
+        points.push({ x, y, delay: Math.max(8, interval) });
+      }
+
+      // Sometimes add overshoot and correction (30% chance)
+      if (Math.random() < 0.3 && dist > 50) {
+        const overshoot = 5 + Math.random() * 15;
+        const dx = (endX - startX) / dist;
+        const dy = (endY - startY) / dist;
+
+        // Overshoot point (but not if it would hit decoy)
+        const overshootX = endX + dx * overshoot + gaussianRandom(0, 2);
+        const overshootY = endY + dy * overshoot + gaussianRandom(0, 2);
+
+        if (!isTooCloseToDecoy(overshootX, overshootY)) {
+          points.push({
+            x: overshootX,
+            y: overshootY,
+            delay: 20 + Math.random() * 30
+          });
+
+          // Correction back
+          points.push({
+            x: endX + gaussianRandom(0, 3),
+            y: endY + gaussianRandom(0, 3),
+            delay: 30 + Math.random() * 40
+          });
+        }
+      }
+
+      return points;
+    }
+
+    function startBotDemo() {
+      resetAll();
+      isBotMode = true;
+      botBtn.disabled = true;
+      botBtn.textContent = '🤖 Smart Bot Running...';
+      captureArea.classList.add('active', 'bot-mode');
+      prompt.classList.add('hidden');
+      target.style.display = 'flex';
+      botCursor.style.display = 'block';
+      pathEl.classList.add('bot-path');
+
+      startTime = Date.now();
+      timeoutId = setTimeout(() => {
+        stopBot();
+        handleTimeout();
+      }, TIMEOUT_SECONDS * 1000);
+
+      moveTarget();
+
+      // Bot state
+      let botX = 200, botY = 175;
+      let pathQueue = [];
+      let lastTargetX = targetX, lastTargetY = targetY;
+      let reactionTimeout = null;
+
+      botCursor.style.left = botX + 'px';
+      botCursor.style.top = botY + 'px';
+
+      function planNewPath() {
+        // Reaction time delay (150-400ms like humans)
+        const reactionTime = 150 + Math.random() * 250;
+        reactionTimeout = setTimeout(() => {
+          // Read target from DOM (attacker has full access)
+          const currentTargetX = targetX;
+          const currentTargetY = targetY;
+
+          // Generate human-like path using Bezier + noise
+          pathQueue = generateHumanPath(botX, botY, currentTargetX, currentTargetY);
+          lastTargetX = currentTargetX;
+          lastTargetY = currentTargetY;
+        }, reactionTime);
+      }
+
+      planNewPath();
+
+      // Execute path with variable timing
+      function executeNextPoint() {
+        if (!isBotMode) return;
+
+        // Check if target moved (need to replan)
+        if (targetX !== lastTargetX || targetY !== lastTargetY) {
+          if (reactionTimeout) clearTimeout(reactionTimeout);
+          pathQueue = [];
+          planNewPath();
+        }
+
+        if (pathQueue.length > 0) {
+          const point = pathQueue.shift();
+          botX = point.x;
+          botY = point.y;
+
+          botCursor.style.left = botX + 'px';
+          botCursor.style.top = botY + 'px';
+          handleMove(botX, botY);
+
+          // Check if we should verify
+          if (targetHits >= REQUIRED_TARGETS && movementData.length > 50) {
+            // Don't call stopBot() here - displayResult will do it after capturing isBotMode
+            verifyBtn.click();
+            return;
+          }
+
+          // Schedule next point with variable delay
+          botInterval = setTimeout(executeNextPoint, point.delay);
+        } else {
+          // Path complete, wait a bit then plan next if needed
+          botInterval = setTimeout(() => {
+            if (isBotMode && targetHits < REQUIRED_TARGETS) {
+              planNewPath();
+              botInterval = setTimeout(executeNextPoint, 50);
+            }
+          }, 100);
+        }
+      }
+
+      // Start execution after initial reaction time
+      setTimeout(executeNextPoint, 200);
+    }
+
+    function stopBot() {
+      if (botInterval) {
+        clearTimeout(botInterval);
+        clearInterval(botInterval);
+      }
+      botInterval = null;
+      isBotMode = false;
+      botBtn.textContent = '🤖 Watch Bot Try';
+      botBtn.disabled = false;
+      captureArea.classList.remove('bot-mode');
+      botCursor.style.display = 'none';
+    }
+
+    // ========== VERIFICATION ==========
     verifyBtn.addEventListener('click', async () => {
       if (timeoutId) clearTimeout(timeoutId);
+      if (botInterval) clearInterval(botInterval);
       timeoutId = null;
       verifyBtn.disabled = true;
       verifyBtn.textContent = 'Verifying...';
@@ -610,26 +1016,33 @@
           body: JSON.stringify({
             points: movementData,
             targetHits: targetHits,
-            recordId: 'test-' + Date.now()
+            decoyHits: decoyHits,
+            recordId: 'test-' + Date.now(),
+            envWarnings: envWarnings
           })
         });
 
         const result = await response.json();
+        result.decoyHits = decoyHits;
+        result.envWarnings = envWarnings;
         displayResult(result);
       } catch (err) {
         alert('Server error: ' + err.message + '\n\nMake sure to run: npm run server');
+        verifyBtn.textContent = 'Verify with Server';
+        verifyBtn.disabled = false;
       }
-
-      verifyBtn.textContent = 'Verify with Server';
-      verifyBtn.disabled = false;
     });
 
     function displayResult(result) {
       serverResponse.classList.add('show');
+      const wasBot = isBotMode;  // Save before stopBot clears it
+      stopBot();
 
-      // Status badge
       const statusBadge = document.getElementById('statusBadge');
-      if (result.verified) {
+      // Fail if decoys were hit
+      const passed = result.verified && decoyHits === 0;
+
+      if (passed) {
         statusBadge.textContent = 'VERIFIED';
         statusBadge.className = 'status-badge verified';
       } else {
@@ -637,38 +1050,107 @@
         statusBadge.className = 'status-badge failed';
       }
 
-      // AI detected badge
-      const aiBadge = document.getElementById('aiBadge');
-      aiBadge.style.display = result.aiDetected ? 'inline-block' : 'none';
+      document.getElementById('aiBadge').style.display = result.aiDetected ? 'inline-block' : 'none';
+      document.getElementById('envBadge').style.display = envWarnings.length > 0 ? 'inline-block' : 'none';
 
-      // Checks grid
       const checksGrid = document.getElementById('checksGrid');
       const checkNames = ['Speed Variation', 'Path Curves', 'Micro-jitter', 'Timing', 'Continuous Flow', 'Not Robotic'];
       const checkKeys = ['speed', 'curves', 'jitter', 'timing', 'continuous', 'notRobotic'];
 
-      checksGrid.innerHTML = checkKeys.map((key, i) => {
-        const passed = result.checks[key];
-        return `<div class="check-item ${passed ? 'passed' : 'failed'}">
-          ${passed ? '✓' : '✗'} ${checkNames[i]}
-        </div>`;
-      }).join('') + `<div class="check-item ${targetHits >= 5 ? 'passed' : 'failed'}">
-        ${targetHits >= 5 ? '✓' : '✗'} Targets (${targetHits}/5)
+      let html = checkKeys.map((key, i) => {
+        const p = result.checks[key];
+        return `<div class="check-item ${p ? 'passed' : 'failed'}">${p ? '✓' : '✗'} ${checkNames[i]}</div>`;
+      }).join('');
+
+      html += `<div class="check-item ${targetHits >= REQUIRED_TARGETS ? 'passed' : 'failed'}">
+        ${targetHits >= REQUIRED_TARGETS ? '✓' : '✗'} Targets (${targetHits}/${REQUIRED_TARGETS})
+      </div>`;
+      html += `<div class="check-item ${decoyHits === 0 ? 'passed' : 'failed'}">
+        ${decoyHits === 0 ? '✓' : '✗'} Decoys Avoided (${decoyHits} hit)
       </div>`;
 
-      // Signature
+      if (envWarnings.length > 0) {
+        html += `<div class="check-item failed" style="grid-column: 1 / -1;">
+          ⚠ Environment: ${envWarnings.join(', ')}
+        </div>`;
+      }
+
+      checksGrid.innerHTML = html;
+
       const signatureSection = document.getElementById('signatureSection');
-      if (result.verified && result.signature) {
+      if (passed && result.signature) {
         signatureSection.style.display = 'block';
         document.getElementById('signatureBox').textContent = result.signature;
       } else {
         signatureSection.style.display = 'none';
       }
 
-      // Full response
       document.getElementById('fullResponse').innerHTML = syntaxHighlight(JSON.stringify(result, null, 2));
-
-      // AI prompt
       generateAIPrompt(result);
+
+      // Show compact last result in the left column
+      const lastResult = document.getElementById('lastResult');
+      const lastResultBadge = document.getElementById('lastResultBadge');
+      const lastResultChecks = document.getElementById('lastResultChecks');
+      const lastResultChecksGrid = document.getElementById('lastResultChecksGrid');
+
+      lastResult.style.display = 'block';
+      lastResultBadge.textContent = passed ? '✓ PASSED' : '✗ FAILED';
+      lastResultBadge.style.background = passed ? '#238636' : '#da3633';
+      lastResultBadge.style.color = '#fff';
+      lastResultChecks.textContent = `${result.checksPassed}/7 checks | ${wasBot ? 'Bot' : 'Human'} test`;
+
+      // Compact check icons
+      const checkIcons = checkKeys.map((key, i) => {
+        const p = result.checks[key];
+        return `<span style="padding: 2px 6px; border-radius: 3px; background: ${p ? 'rgba(35,134,54,0.3)' : 'rgba(218,54,51,0.3)'}; color: ${p ? '#3fb950' : '#f85149'};">${p ? '✓' : '✗'} ${checkNames[i].split(' ')[0]}</span>`;
+      }).join('');
+      lastResultChecksGrid.innerHTML = checkIcons;
+
+      // Show last attempt banner above confusion matrix
+      const lastAttemptBanner = document.getElementById('lastAttemptBanner');
+      const lastAttemptResult = document.getElementById('lastAttemptResult');
+      lastAttemptBanner.style.display = 'block';
+
+      if (wasBot) {
+        // Bot test
+        lastAttemptBanner.style.background = passed ? 'rgba(218, 54, 51, 0.2)' : 'rgba(35, 134, 54, 0.2)';
+        lastAttemptBanner.style.border = passed ? '2px solid #da3633' : '2px solid #238636';
+        lastAttemptResult.innerHTML = passed
+          ? '🤖 Bot <span style="color: #f85149;">SLIPPED THROUGH</span>'
+          : '🤖 Bot <span style="color: #3fb950;">CAUGHT</span>';
+      } else {
+        // Human test
+        lastAttemptBanner.style.background = passed ? 'rgba(35, 134, 54, 0.2)' : 'rgba(218, 54, 51, 0.2)';
+        lastAttemptBanner.style.border = passed ? '2px solid #238636' : '2px solid #da3633';
+        lastAttemptResult.innerHTML = passed
+          ? '👤 Human <span style="color: #3fb950;">PASSED</span>'
+          : '👤 Human <span style="color: #f85149;">BLOCKED</span>';
+      }
+
+      // Record to confusion matrix
+      fetch('/api/record-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isHuman: !wasBot,
+          passed: passed,
+          metrics: result.metrics,
+          detectionVersion: result.detectionVersion,
+          detectionConfig: result.detectionConfig
+        })
+      }).then(r => r.json()).then(d => {
+        console.log('Recorded to confusion matrix:', d.matrix);
+        loadConfusionMatrix(); // Refresh the display
+      });
+
+      verifyBtn.textContent = 'Verify with Server';
+      verifyBtn.disabled = true;
+
+      // Auto-reset for instant replay
+      setTimeout(() => {
+        resetAll(true); // Keep last result visible
+      }, 1500); // Short delay so user can see result
     }
 
     function syntaxHighlight(json) {
@@ -685,34 +1167,24 @@
         ? ((movementData[movementData.length-1].t - movementData[0].t) / 1000).toFixed(2)
         : 0;
 
-      const prompt = `Analyze this mouse movement data and determine if it appears to be from a human or an AI/bot.
-
-The data represents ${movementData.length} movement points recorded during a human verification test.
-Each point has x (horizontal position), y (vertical position), and t (timestamp in milliseconds).
+      const promptText = `Analyze this mouse movement data and determine if it appears to be from a human or an AI/bot.
 
 SERVER-SIDE ANALYSIS RESULTS:
 - Verified: ${result.verified}
 - AI Detected: ${result.aiDetected}
 - Checks Passed: ${result.checksPassed}/7
+- Decoys Hit: ${decoyHits} (should be 0)
 
-Here is a sample of the movement data (first 50 points):
+Movement sample (first 50 of ${movementData.length} points):
 ${JSON.stringify(samplePoints, null, 2)}
 
-Summary statistics:
-- Total points: ${movementData.length}
-- Duration: ${duration} seconds
-- Points per second: ${(movementData.length / duration).toFixed(1)}
+Stats:
+- Duration: ${duration}s
+- Points/sec: ${(movementData.length / duration).toFixed(1)}
 
-Please analyze:
-1. Does the movement show natural speed variation (acceleration/deceleration)?
-2. Are the paths curved naturally or straight robotic lines?
-3. Is there natural micro-jitter/tremor in the movement?
-4. Are the timing gaps between points consistent with human behavior?
-5. Does it look like continuous human mouse movement or discrete AI jumps?
+Is this HUMAN or AI/BOT movement?`;
 
-Do you agree with the server's assessment? Is this HUMAN or AI/BOT movement?`;
-
-      document.getElementById('aiPrompt').value = prompt;
+      document.getElementById('aiPrompt').value = promptText;
     }
 
     function copyPrompt() {
@@ -723,6 +1195,448 @@ Do you agree with the server's assessment? Is this HUMAN or AI/BOT movement?`;
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
     }
+
+    // ========== BOT 20x / 500x / 25k TEST ==========
+    const bot20Btn = document.getElementById('bot20Btn');
+    const bot500Btn = document.getElementById('bot500Btn');
+    const bot25kBtn = document.getElementById('bot25kBtn');
+    bot20Btn.addEventListener('click', () => runBotNTest(20, true));
+    bot500Btn.addEventListener('click', () => runBotNTest(500, false));
+    bot25kBtn.addEventListener('click', runBot25kTest);
+
+    function generateBotMovementData() {
+      // Generate simulated bot movement (same logic as visual bot)
+      const points = [];
+      let x = 200, y = 175;
+      let currentTime = Date.now();
+
+      for (let target = 0; target < 5; target++) {
+        const endX = 80 + Math.random() * 300;
+        const endY = 80 + Math.random() * 200;
+        const dist = Math.sqrt((endX - x) ** 2 + (endY - y) ** 2);
+
+        // Bezier control point
+        const midX = (x + endX) / 2;
+        const midY = (y + endY) / 2;
+        const perpX = -(endY - y) / dist;
+        const perpY = (endX - x) / dist;
+        const curveAmount = gaussianRandom(0, dist * 0.15);
+        const cpX = midX + perpX * curveAmount + gaussianRandom(0, 15);
+        const cpY = midY + perpY * curveAmount + gaussianRandom(0, 15);
+
+        const movementTime = 200 + dist * 1.5 + gaussianRandom(0, 50);
+        const numPoints = Math.max(15, Math.floor(movementTime / 12));
+
+        for (let i = 0; i <= numPoints; i++) {
+          let t = i / numPoints;
+          t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+          let px = bezierPoint(t, x, cpX, endX);
+          let py = bezierPoint(t, y, cpY, endY);
+
+          const jitterAmt = Math.sin(Math.PI * (i / numPoints)) * 2;
+          px += gaussianRandom(0, jitterAmt);
+          py += gaussianRandom(0, jitterAmt);
+
+          const interval = Math.max(8, movementTime / numPoints + gaussianRandom(0, 5));
+          currentTime += interval;
+          points.push({ x: px, y: py, t: currentTime });
+        }
+
+        // 30% overshoot
+        if (Math.random() < 0.3 && dist > 50) {
+          const os = 5 + Math.random() * 15;
+          const dx = (endX - x) / dist, dy = (endY - y) / dist;
+          currentTime += 25;
+          points.push({ x: endX + dx * os, y: endY + dy * os, t: currentTime });
+          currentTime += 35;
+          points.push({ x: endX + gaussianRandom(0,3), y: endY + gaussianRandom(0,3), t: currentTime });
+        }
+
+        x = endX;
+        y = endY;
+        currentTime += 150 + Math.random() * 250; // Reaction delay
+      }
+
+      return points;
+    }
+
+    async function runBotNTest(n, showAllRows) {
+      bot20Btn.disabled = true;
+      bot500Btn.disabled = true;
+      const btn = n === 20 ? bot20Btn : bot500Btn;
+      btn.textContent = '🤖 Running...';
+
+      const resultsSection = document.getElementById('bot20Results');
+      const progressDiv = document.getElementById('bot20Progress');
+      const summaryDiv = document.getElementById('bot20Summary');
+      const tbody = document.getElementById('bot20Body');
+      const heading = resultsSection.querySelector('h2');
+      heading.textContent = `🤖 Bot ${n}x Test Results`;
+
+      resultsSection.style.display = 'block';
+      tbody.innerHTML = '';
+      summaryDiv.innerHTML = '';
+
+      let passes = 0, fails = 0;
+      const signalCounts = {};
+      const failedCheckCounts = {};
+
+      for (let i = 1; i <= n; i++) {
+        if (i % 10 === 0 || i === 1) {
+          progressDiv.textContent = `Running test ${i}/${n}...`;
+        }
+
+        const points = generateBotMovementData();
+
+        try {
+          const response = await fetch('http://localhost:3847/api/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              points: points,
+              targetHits: 5,
+              decoyHits: 0,
+              recordId: 'bot-test-' + i
+            })
+          });
+
+          const result = await response.json();
+          const passed = result.verified;
+          if (passed) passes++; else fails++;
+
+          // Find which checks failed
+          const checkNames = {
+            speed: 'Speed', curves: 'Curves', jitter: 'Jitter',
+            timing: 'Timing', continuous: 'Continuous', notRobotic: 'NotRobotic'
+          };
+          const failedChecks = Object.entries(result.checks)
+            .filter(([k, v]) => !v)
+            .map(([k]) => checkNames[k] || k);
+
+          failedChecks.forEach(c => { failedCheckCounts[c] = (failedCheckCounts[c] || 0) + 1; });
+
+          // Find which Bezier signals triggered (must match detection.js thresholds)
+          const m = result.metrics;
+          const signals = [];
+          if (m.jerkSpikeRatio < 0.035) signals.push('Jerk');
+          if (m.accelSignChangeRate < 0.35) signals.push('AccelChg');
+          if (m.curvatureChangeRate < 0.12) signals.push('CurvChg');
+          if (m.velocityPeaksPerSecond < 2.0) signals.push('VelPeaks');
+          if (m.pathEfficiency > 0.75) signals.push('PathEff');
+          if (Math.abs(m.noiseAutocorr) < 0.15) signals.push('NoiseAC');
+          if (m.directionEntropy < 1.4) signals.push('DirEnt');
+          if (m.reversalRate < 0.02) signals.push('Reversal');
+          if (m.hesitationRate < 0.01) signals.push('Hesit');
+          if (Math.abs(m.jerkAutocorr) < 0.12) signals.push('JerkAC');
+          if (m.linearAccelRatio > 0.3) signals.push('LinAccel');
+          if (m.symmetryRatio > 0.6) signals.push('Symmetry');
+          if (m.xyNoiseCorr < 0.15) signals.push('XYCorr');
+          if (m.perfectStartRatio > 0.7) signals.push('PerfStart');
+          if (m.smoothStartRatio > 0.6) signals.push('SmthStart');
+          if (m.fidgetRatio < 0.10) signals.push('NoFidget');
+
+          signals.forEach(s => { signalCounts[s] = (signalCounts[s] || 0) + 1; });
+
+          // Show row for small tests or just failures for large tests
+          if (showAllRows || !passed) {
+            const signalsDetail = [];
+            if (m.jerkSpikeRatio < 0.035) signalsDetail.push(`Jerk(${(m.jerkSpikeRatio*100).toFixed(1)}%)`);
+            if (m.accelSignChangeRate < 0.35) signalsDetail.push(`AccelChg(${(m.accelSignChangeRate*100).toFixed(0)}%)`);
+            if (m.curvatureChangeRate < 0.12) signalsDetail.push(`CurvChg(${(m.curvatureChangeRate*100).toFixed(1)}%)`);
+            if (m.velocityPeaksPerSecond < 2.0) signalsDetail.push(`VelPeaks(${m.velocityPeaksPerSecond.toFixed(1)})`);
+            if (m.pathEfficiency > 0.75) signalsDetail.push(`PathEff(${(m.pathEfficiency*100).toFixed(0)}%)`);
+            if (Math.abs(m.noiseAutocorr) < 0.15) signalsDetail.push(`NoiseAC(${m.noiseAutocorr.toFixed(2)})`);
+            if (m.directionEntropy < 1.4) signalsDetail.push(`DirEnt(${m.directionEntropy.toFixed(2)})`);
+            if (m.reversalRate < 0.02) signalsDetail.push(`Reversal(${(m.reversalRate*100).toFixed(1)}%)`);
+            if (m.hesitationRate < 0.01) signalsDetail.push(`Hesit(${(m.hesitationRate*100).toFixed(2)}%)`);
+            if (Math.abs(m.jerkAutocorr) < 0.12) signalsDetail.push(`JerkAC(${m.jerkAutocorr.toFixed(2)})`);
+            if (m.linearAccelRatio > 0.3) signalsDetail.push(`LinAccel(${(m.linearAccelRatio*100).toFixed(0)}%)`);
+            if (m.symmetryRatio > 0.6) signalsDetail.push(`Symmetry(${(m.symmetryRatio*100).toFixed(0)}%)`);
+            if (m.xyNoiseCorr < 0.15) signalsDetail.push(`XYCorr(${m.xyNoiseCorr.toFixed(2)})`);
+            if (m.perfectStartRatio > 0.7) signalsDetail.push(`PerfStart(${(m.perfectStartRatio*100).toFixed(0)}%)`);
+            if (m.smoothStartRatio > 0.6) signalsDetail.push(`SmthStart(${(m.smoothStartRatio*100).toFixed(0)}%)`);
+            if (m.fidgetRatio < 0.10) signalsDetail.push(`NoFidget(${(m.fidgetRatio*100).toFixed(1)}%)`);
+
+            const row = document.createElement('tr');
+            // Highlight passes in 20x test (bot slipped through!) - these need investigation
+            const passStyle = passed ? 'background: rgba(218, 54, 51, 0.2);' : '';
+            row.innerHTML = `
+              <td style="padding: 6px; border: 1px solid #30363d; ${passStyle}">${i}</td>
+              <td style="padding: 6px; border: 1px solid #30363d; color: ${passed ? '#3fb950' : '#f85149'}; ${passStyle}">${passed ? '✅ PASS (bot won!)' : '❌ FAIL'}</td>
+              <td style="padding: 6px; border: 1px solid #30363d; color: #f85149; ${passStyle}">${failedChecks.length ? failedChecks.join(', ') : '<span style="color:#3fb950">None</span>'}</td>
+              <td style="padding: 6px; border: 1px solid #30363d; color: #d29922; font-size: 10px; ${passStyle}">${signals.length} signals: ${signalsDetail.join(', ') || 'None'}</td>
+            `;
+            tbody.appendChild(row);
+          }
+
+        } catch (err) {
+          fails++;
+        }
+
+        // Smaller delay for large tests
+        if (n <= 20 || i % 5 === 0) {
+          await new Promise(r => setTimeout(r, n > 100 ? 10 : 50));
+        }
+      }
+
+      progressDiv.textContent = 'Complete!';
+      const detectionRate = ((fails / n) * 100).toFixed(1);
+
+      // Build signal breakdown
+      const signalBreakdown = Object.entries(signalCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `${k}: ${((v/n)*100).toFixed(0)}%`)
+        .join(', ');
+
+      summaryDiv.innerHTML = `
+        <div style="margin-bottom: 8px;">
+          <span style="color: #3fb950;">✅ ${passes} passes</span> &nbsp;|&nbsp;
+          <span style="color: #f85149;">❌ ${fails} fails</span> &nbsp;|&nbsp;
+          <strong style="color: ${parseFloat(detectionRate) >= 80 ? '#3fb950' : '#f85149'};">${detectionRate}% detection rate</strong>
+        </div>
+        <div style="font-size: 11px; color: #8b949e;">
+          <strong>Signal frequency:</strong> ${signalBreakdown || 'None'}
+        </div>
+        ${!showAllRows ? '<div style="font-size: 11px; color: #8b949e; margin-top: 4px;">Showing failures only (passes hidden)</div>' : ''}
+      `;
+
+      bot20Btn.disabled = false;
+      bot500Btn.disabled = false;
+      bot25kBtn.disabled = false;
+      bot20Btn.textContent = '🤖 20x';
+      bot500Btn.textContent = '🤖 500x';
+      bot25kBtn.textContent = '🤖 25,000x';
+    }
+
+    // ========== BOT 25,000x TEST (500 batches of 50) ==========
+    async function runBot25kTest() {
+      bot20Btn.disabled = true;
+      bot500Btn.disabled = true;
+      bot25kBtn.disabled = true;
+      bot25kBtn.textContent = '🤖 Running 25k...';
+
+      const resultsSection = document.getElementById('bot20Results');
+      const progressDiv = document.getElementById('bot20Progress');
+      const summaryDiv = document.getElementById('bot20Summary');
+      const tbody = document.getElementById('bot20Body');
+      const heading = resultsSection.querySelector('h2');
+      const histogramSection = document.getElementById('histogramSection');
+
+      heading.textContent = '🤖 Bot 25,000x Test (500 batches of 50)';
+      resultsSection.style.display = 'block';
+      tbody.innerHTML = ''; // No table rows for this test
+      histogramSection.style.display = 'block';
+
+      const BATCHES = 500;
+      const TESTS_PER_BATCH = 50;
+      const batchDetectionRates = [];
+
+      for (let batch = 0; batch < BATCHES; batch++) {
+        progressDiv.textContent = `Batch ${batch + 1}/${BATCHES} (${((batch + 1) * TESTS_PER_BATCH).toLocaleString()} tests)...`;
+
+        let batchFails = 0;
+
+        // Run 50 tests in this batch
+        for (let i = 0; i < TESTS_PER_BATCH; i++) {
+          const points = generateBotMovementData();
+
+          try {
+            const response = await fetch('http://localhost:3847/api/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                points: points,
+                targetHits: 5,
+                decoyHits: 0,
+                recordId: 'bot25k-' + batch + '-' + i
+              })
+            });
+
+            const result = await response.json();
+            if (!result.verified) batchFails++;
+          } catch (err) {
+            batchFails++;
+          }
+        }
+
+        const batchRate = (batchFails / TESTS_PER_BATCH) * 100;
+        batchDetectionRates.push(batchRate);
+
+        // Update histogram after each batch
+        updateHistogram(batchDetectionRates);
+
+        // Tiny yield to keep UI responsive
+        await new Promise(r => setTimeout(r, 5));
+      }
+
+      // Final stats
+      progressDiv.textContent = 'Complete! 25,000 tests finished.';
+
+      const mean = batchDetectionRates.reduce((a, b) => a + b, 0) / batchDetectionRates.length;
+      const variance = batchDetectionRates.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / batchDetectionRates.length;
+      const stdDev = Math.sqrt(variance);
+
+      const sorted = [...batchDetectionRates].sort((a, b) => a - b);
+      const p5 = sorted[Math.floor(sorted.length * 0.05)];
+      const p25 = sorted[Math.floor(sorted.length * 0.25)];
+      const p50 = sorted[Math.floor(sorted.length * 0.50)];
+      const p75 = sorted[Math.floor(sorted.length * 0.75)];
+      const p95 = sorted[Math.floor(sorted.length * 0.95)];
+      const min = sorted[0];
+      const max = sorted[sorted.length - 1];
+
+      summaryDiv.innerHTML = `
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #58a6ff;">Mean Detection Rate: ${mean.toFixed(1)}%</strong>
+          <span style="color: #8b949e;"> (StdDev: ${stdDev.toFixed(2)}%)</span>
+        </div>
+        <div style="font-size: 12px; color: #8b949e;">
+          Range: ${min.toFixed(0)}% - ${max.toFixed(0)}% &nbsp;|&nbsp;
+          Percentiles: p5=${p5.toFixed(0)}%, p25=${p25.toFixed(0)}%, p50=${p50.toFixed(0)}%, p75=${p75.toFixed(0)}%, p95=${p95.toFixed(0)}%
+        </div>
+      `;
+
+      bot20Btn.disabled = false;
+      bot500Btn.disabled = false;
+      bot25kBtn.disabled = false;
+      bot20Btn.textContent = '🤖 20x';
+      bot500Btn.textContent = '🤖 500x';
+      bot25kBtn.textContent = '🤖 25,000x';
+    }
+
+    function updateHistogram(rates) {
+      const histogram = document.getElementById('histogram');
+      const labels = document.getElementById('histogramLabels');
+      const stats = document.getElementById('histogramStats');
+
+      // Create 100 bins (1% each)
+      const numBins = 100;
+      const binSize = 1;
+      const bins = new Array(numBins).fill(0);
+
+      rates.forEach(rate => {
+        const binIndex = Math.min(Math.floor(rate / binSize), numBins - 1);
+        bins[binIndex]++;
+      });
+
+      const maxCount = Math.max(...bins, 1);
+
+      // Render bars
+      let barsHtml = '';
+      for (let i = 0; i < numBins; i++) {
+        const height = (bins[i] / maxCount) * 130;
+        const binStart = i * binSize;
+        const intensity = Math.min(255, Math.floor((binStart / 100) * 255));
+        const color = `rgb(${255 - intensity}, ${intensity}, 80)`;
+        barsHtml += `<div style="flex: 1; background: ${color}; height: ${height}px; min-width: 2px; border-radius: 1px 1px 0 0;" title="${binStart}%: ${bins[i]} batches"></div>`;
+      }
+      histogram.innerHTML = barsHtml;
+
+      // Labels
+      labels.innerHTML = `
+        <span>0%</span>
+        <span>25%</span>
+        <span>50%</span>
+        <span>75%</span>
+        <span>100%</span>
+      `;
+
+      // Running stats
+      if (rates.length > 0) {
+        const mean = rates.reduce((a, b) => a + b, 0) / rates.length;
+        stats.innerHTML = `Batches: ${rates.length}/500 | Running mean: ${mean.toFixed(1)}%`;
+      }
+    }
+
+    // ========== CONFUSION MATRIX DISPLAY ==========
+    function loadConfusionMatrix() {
+      fetch('/api/confusion-matrix')
+        .then(r => r.json())
+        .then(data => updateConfusionMatrixDisplay(data))
+        .catch(e => console.error('Failed to load confusion matrix:', e));
+    }
+
+    function updateConfusionMatrixDisplay(data) {
+      const { matrix, rates, totals, recentHuman, recentBot } = data;
+
+      // Update matrix cells
+      document.querySelector('#cmHumanPassed div:first-child').textContent = matrix.humanPassed;
+      document.querySelector('#cmHumanFailed div:first-child').textContent = matrix.humanFailed;
+      document.querySelector('#cmBotPassed div:first-child').textContent = matrix.botPassed;
+      document.querySelector('#cmBotFailed div:first-child').textContent = matrix.botFailed;
+
+      // Update metrics
+      document.getElementById('cmHumanPassRate').textContent = rates.humanPassRate;
+      document.getElementById('cmBotDetectionRate').textContent = rates.botDetectionRate;
+      document.getElementById('cmFalsePositiveRate').textContent = rates.falsePositiveRate;
+      document.getElementById('cmFalseNegativeRate').textContent = rates.falseNegativeRate;
+      document.getElementById('cmTotalHuman').textContent = totals.human;
+      document.getElementById('cmTotalBot').textContent = totals.bot;
+
+      // Color the rates based on good/bad
+      const humanPassEl = document.getElementById('cmHumanPassRate');
+      const botDetectEl = document.getElementById('cmBotDetectionRate');
+      const fpEl = document.getElementById('cmFalsePositiveRate');
+      const fnEl = document.getElementById('cmFalseNegativeRate');
+
+      const humanPassNum = parseFloat(rates.humanPassRate);
+      const botDetectNum = parseFloat(rates.botDetectionRate);
+      const fpNum = parseFloat(rates.falsePositiveRate);
+      const fnNum = parseFloat(rates.falseNegativeRate);
+
+      humanPassEl.style.color = humanPassNum >= 90 ? '#3fb950' : humanPassNum >= 70 ? '#d29922' : '#f85149';
+      botDetectEl.style.color = botDetectNum >= 90 ? '#3fb950' : botDetectNum >= 70 ? '#d29922' : '#f85149';
+      fpEl.style.color = fpNum <= 5 ? '#3fb950' : fpNum <= 15 ? '#d29922' : '#f85149';
+      fnEl.style.color = fnNum <= 5 ? '#3fb950' : fnNum <= 15 ? '#d29922' : '#f85149';
+
+      // Update recent results
+      const humanHtml = (recentHuman || []).map(r => {
+        const time = new Date(r.timestamp).toLocaleTimeString();
+        return `<div style="padding: 4px; border-bottom: 1px solid #21262d;">
+          ${r.passed ? '✅' : '❌'} ${time} - v${r.detectionVersion || '?'}
+        </div>`;
+      }).join('') || '<div style="color: #8b949e;">No human tests yet</div>';
+
+      const botHtml = (recentBot || []).map(r => {
+        const time = new Date(r.timestamp).toLocaleTimeString();
+        return `<div style="padding: 4px; border-bottom: 1px solid #21262d;">
+          ${r.passed ? '⚠️ Slipped!' : '🛡️ Caught'} ${time} - v${r.detectionVersion || '?'}
+        </div>`;
+      }).join('') || '<div style="color: #8b949e;">No bot tests yet</div>';
+
+      document.getElementById('cmRecentHuman').innerHTML = humanHtml;
+      document.getElementById('cmRecentBot').innerHTML = botHtml;
+    }
+
+    function resetConfusionMatrix() {
+      if (!confirm('Reset all confusion matrix data? This cannot be undone.')) return;
+      fetch('/api/reset-matrix', { method: 'POST' })
+        .then(r => r.json())
+        .then(() => loadConfusionMatrix())
+        .catch(e => console.error('Failed to reset:', e));
+    }
+
+    function clearAllServerData() {
+      if (!confirm('⚠️ ARE YOU SURE?\n\nThis will permanently delete ALL confusion matrix data from the server.\n\nThis action cannot be undone!')) return;
+      if (!confirm('🚨 REALLY SURE?\n\nClick OK to permanently erase all human and bot test results.')) return;
+
+      fetch('/api/reset-matrix', { method: 'POST' })
+        .then(r => r.json())
+        .then(() => {
+          loadConfusionMatrix();
+          document.getElementById('lastAttemptBanner').style.display = 'none';
+          document.getElementById('lastResult').style.display = 'none';
+          alert('✓ All server results have been cleared.');
+        })
+        .catch(e => {
+          console.error('Failed to clear:', e);
+          alert('Error clearing data: ' + e.message);
+        });
+    }
+
+    // Load confusion matrix on page load
+    loadConfusionMatrix();
   </script>
 </body>
 </html>

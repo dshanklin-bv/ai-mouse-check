@@ -12,7 +12,10 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { analyzeMovement, generateSignature, verifySignature } = require('./detection');
+
+const MATRIX_FILE = path.join(__dirname, '..', 'confusion-matrix.json');
 
 const app = express();
 const PORT = process.env.PORT || 3847;
@@ -23,10 +26,57 @@ const SECRET_KEY = process.env.VERIFICATION_SECRET || 'change-this-in-production
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+
+// Disable caching for JS files during development
+app.use((req, res, next) => {
+  if (req.path.endsWith('.js') || req.path.endsWith('.html')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, '..')));
 
 // Store verified sessions (in production, use Redis or database)
 const verifiedSessions = new Map();
+
+// Confusion matrix tracking - load from file or initialize
+function loadConfusionMatrix() {
+  try {
+    if (fs.existsSync(MATRIX_FILE)) {
+      const data = fs.readFileSync(MATRIX_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error loading confusion matrix:', e);
+  }
+  return {
+    humanPassed: 0,
+    humanFailed: 0,
+    botPassed: 0,
+    botFailed: 0,
+    humanResults: [],
+    botResults: []
+  };
+}
+
+function saveConfusionMatrix() {
+  try {
+    fs.writeFileSync(MATRIX_FILE, JSON.stringify(confusionMatrix, null, 2));
+  } catch (e) {
+    console.error('Error saving confusion matrix:', e);
+  }
+}
+
+const confusionMatrix = loadConfusionMatrix();
+console.log('Loaded confusion matrix:', {
+  humanPassed: confusionMatrix.humanPassed,
+  humanFailed: confusionMatrix.humanFailed,
+  botPassed: confusionMatrix.botPassed,
+  botFailed: confusionMatrix.botFailed
+});
 
 /**
  * POST /api/verify
@@ -169,6 +219,129 @@ app.get('/api/health', (req, res) => {
     serverSideVerification: true,
     activeSessions: verifiedSessions.size
   });
+});
+
+/**
+ * POST /api/record-result
+ * Record a test result for confusion matrix tracking
+ *
+ * Request body:
+ *   - isHuman: boolean (true if this was a human test, false if bot)
+ *   - passed: boolean (true if the test passed verification)
+ *   - metrics: object (optional metrics for analysis)
+ */
+app.post('/api/record-result', (req, res) => {
+  try {
+    const { isHuman, passed, metrics, detectionVersion, detectionConfig } = req.body;
+
+    if (typeof isHuman !== 'boolean' || typeof passed !== 'boolean') {
+      return res.status(400).json({
+        error: 'Missing required fields: isHuman and passed (both boolean)'
+      });
+    }
+
+    const record = {
+      timestamp: Date.now(),
+      passed,
+      detectionVersion: detectionVersion || 'unknown',
+      detectionConfig: detectionConfig || null,
+      metrics: metrics || {}
+    };
+
+    if (isHuman) {
+      if (passed) {
+        confusionMatrix.humanPassed++;
+      } else {
+        confusionMatrix.humanFailed++;
+      }
+      confusionMatrix.humanResults.push(record);
+      // Keep only last 100 records
+      if (confusionMatrix.humanResults.length > 100) {
+        confusionMatrix.humanResults.shift();
+      }
+    } else {
+      if (passed) {
+        confusionMatrix.botPassed++;
+      } else {
+        confusionMatrix.botFailed++;
+      }
+      confusionMatrix.botResults.push(record);
+      if (confusionMatrix.botResults.length > 100) {
+        confusionMatrix.botResults.shift();
+      }
+    }
+
+    // Save to file
+    saveConfusionMatrix();
+
+    return res.json({
+      success: true,
+      matrix: {
+        humanPassed: confusionMatrix.humanPassed,
+        humanFailed: confusionMatrix.humanFailed,
+        botPassed: confusionMatrix.botPassed,
+        botFailed: confusionMatrix.botFailed
+      }
+    });
+
+  } catch (error) {
+    console.error('Record result error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/confusion-matrix
+ * Get the current confusion matrix
+ */
+app.get('/api/confusion-matrix', (req, res) => {
+  const { humanPassed, humanFailed, botPassed, botFailed } = confusionMatrix;
+
+  const totalHuman = humanPassed + humanFailed;
+  const totalBot = botPassed + botFailed;
+
+  // Calculate rates
+  const humanPassRate = totalHuman > 0 ? (humanPassed / totalHuman * 100).toFixed(1) : 'N/A';
+  const botDetectionRate = totalBot > 0 ? (botFailed / totalBot * 100).toFixed(1) : 'N/A';
+  const falsePositiveRate = totalHuman > 0 ? (humanFailed / totalHuman * 100).toFixed(1) : 'N/A';
+  const falseNegativeRate = totalBot > 0 ? (botPassed / totalBot * 100).toFixed(1) : 'N/A';
+
+  res.json({
+    matrix: {
+      humanPassed,      // True Negative
+      humanFailed,      // False Positive
+      botPassed,        // False Negative
+      botFailed         // True Positive
+    },
+    totals: {
+      human: totalHuman,
+      bot: totalBot
+    },
+    rates: {
+      humanPassRate: humanPassRate + '%',
+      botDetectionRate: botDetectionRate + '%',
+      falsePositiveRate: falsePositiveRate + '%',
+      falseNegativeRate: falseNegativeRate + '%'
+    },
+    recentHuman: confusionMatrix.humanResults.slice(-10),
+    recentBot: confusionMatrix.botResults.slice(-10)
+  });
+});
+
+/**
+ * POST /api/reset-matrix
+ * Reset the confusion matrix
+ */
+app.post('/api/reset-matrix', (req, res) => {
+  confusionMatrix.humanPassed = 0;
+  confusionMatrix.humanFailed = 0;
+  confusionMatrix.botPassed = 0;
+  confusionMatrix.botFailed = 0;
+  confusionMatrix.humanResults = [];
+  confusionMatrix.botResults = [];
+
+  saveConfusionMatrix();
+  res.json({ success: true, message: 'Confusion matrix reset' });
 });
 
 // Start server

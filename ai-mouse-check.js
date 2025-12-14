@@ -3,9 +3,11 @@
  * https://github.com/dshanklin-bv/ai-mouse-check
  * MIT License
  */
+console.log('ai-mouse-check.js loading...');
 
 (function(global) {
   'use strict';
+  console.log('AIMouseCheck IIFE executing');
 
   class AIMouseCheck {
     constructor(options = {}) {
@@ -15,6 +17,7 @@
         container: options.container || document.body,
         onSuccess: options.onSuccess || (() => {}),
         onFailure: options.onFailure || (() => {}),
+        onTargetHit: options.onTargetHit || null,
         theme: options.theme || 'dark'
       };
 
@@ -327,6 +330,21 @@
             this.state.reactionTimes.push(reactionTime);
             this.state.targetHits++;
             reactionEl.textContent = `Hits: ${this.state.targetHits}/${this.options.targetHitsRequired}`;
+
+            // Call onTargetHit callback if provided
+            console.log('Target hit!', this.state.targetHits, 'callback:', !!this.options.onTargetHit);
+            if (this.options.onTargetHit) {
+              try {
+                this.options.onTargetHit(
+                  this.state.targetHits,
+                  this.options.targetHitsRequired,
+                  [...this.state.movementData]
+                );
+              } catch (e) {
+                console.error('onTargetHit callback error:', e);
+              }
+            }
+
             moveTarget();
           }
         }

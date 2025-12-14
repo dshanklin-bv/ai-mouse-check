@@ -456,8 +456,10 @@ app.<span class="function">post</span>(<span class="string">'/api/human-verify'<
     </footer>
   </div>
 
-  <script src="ai-mouse-check.js"></script>
+  <script src="ai-mouse-check.js?v=1.4.0"></script>
   <script>
+    console.log('AI Mouse Check demo loaded v1.4.0 - FRESH LOAD');
+
     function generateAIPrompt(movementData, verified) {
       const samplePoints = movementData.slice(0, 50); // First 50 points
       const prompt = `Analyze this mouse movement data and determine if it appears to be from a human or an AI/bot.
@@ -496,23 +498,118 @@ Based on your analysis, does this appear to be HUMAN or AI/BOT movement?`;
       }, 2000);
     }
 
+    async function verifyWithServer(movementData, targetHits) {
+      try {
+        const response = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            points: movementData,
+            targetHits: targetHits,
+            recordId: 'human-test-' + Date.now()
+          })
+        });
+        return await response.json();
+      } catch (e) {
+        console.error('Server verify failed:', e);
+        return null;
+      }
+    }
+
+    async function recordHumanResult(passed, serverResult) {
+      try {
+        const response = await fetch('/api/record-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isHuman: true,
+            passed: passed,
+            metrics: serverResult?.metrics || {},
+            detectionVersion: serverResult?.detectionVersion || 'unknown',
+            detectionConfig: serverResult?.detectionConfig || null
+          })
+        });
+        const data = await response.json();
+        console.log('Confusion matrix:', data.matrix);
+        return data;
+      } catch (e) {
+        console.error('Record result failed:', e);
+        return null;
+      }
+    }
+
     function runDemo() {
       const resultEl = document.getElementById('result');
       resultEl.className = 'result';
       resultEl.style.display = 'none';
 
+      let alreadyVerified = false;
+
       const checker = new AIMouseCheck({
         timeout: 10000,
-        onSuccess: (result) => {
+        targetHitsRequired: 5,
+        onTargetHit: (targetHits, totalRequired, movementData) => {
+          console.log('onTargetHit fired:', targetHits, '/', totalRequired);
+          if (targetHits >= 5 && !alreadyVerified) {
+            alreadyVerified = true;
+            console.log('5 hits - auto-verifying with', movementData.length, 'points');
+
+            // Use fetch directly (no await needed in sync callback)
+            fetch('/api/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ points: movementData, targetHits: 5 })
+            })
+            .then(r => r.json())
+            .then(serverResult => {
+              console.log('Server result:', serverResult);
+              const passed = serverResult.verified;
+
+              // Record to confusion matrix
+              fetch('/api/record-result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  isHuman: true,
+                  passed: passed,
+                  metrics: serverResult.metrics,
+                  detectionVersion: serverResult.detectionVersion,
+                  detectionConfig: serverResult.detectionConfig
+                })
+              }).then(r => r.json()).then(d => console.log('Recorded:', d.matrix));
+
+              // Show result
+              resultEl.className = passed ? 'result success' : 'result failure';
+              resultEl.innerHTML = `
+                <h3>Server: ${passed ? '✓ PASSED' : '✗ FAILED'}</h3>
+                <p>Checks: ${serverResult.checksPassed}/7</p>
+                <pre>${JSON.stringify(serverResult, null, 2)}</pre>
+                <p><a href="/api/confusion-matrix" target="_blank">View Confusion Matrix</a></p>
+              `;
+            })
+            .catch(e => console.error('Verify error:', e));
+          }
+        },
+        onSuccess: async (result) => {
+          // Skip if already verified via onTargetHit
+          if (alreadyVerified) return;
+
+          const serverResult = await verifyWithServer(result.movementData, 5);
+          const passed = serverResult ? serverResult.verified : true;
+          await recordHumanResult(passed, serverResult);
+
           const aiPrompt = generateAIPrompt(result.movementData, true);
           const resultWithoutData = { ...result };
           delete resultWithoutData.movementData;
 
-          resultEl.className = 'result success';
+          resultEl.className = passed ? 'result success' : 'result failure';
           resultEl.innerHTML = `
-            <h3>Verified!</h3>
-            <p>You passed all 7 checks in ${(result.duration / 1000).toFixed(1)} seconds.</p>
-            <pre>${JSON.stringify(resultWithoutData, null, 2)}</pre>
+            <h3>${passed ? 'Verified!' : 'Server Verification Failed'}</h3>
+            <p>You passed all client checks in ${(result.duration / 1000).toFixed(1)} seconds.</p>
+            <p style="color: #4cc9f0;">Server: ${passed ? 'PASSED' : 'FAILED'} |
+              <a href="/api/confusion-matrix" target="_blank" style="color: #06d6a0;">View Confusion Matrix</a>
+            </p>
+            <pre>${JSON.stringify(serverResult || resultWithoutData, null, 2)}</pre>
             <div class="ai-prompt-section">
               <h4>Ask an AI to verify this movement data:</h4>
               <div class="ai-prompt-box">
@@ -525,7 +622,14 @@ Based on your analysis, does this appear to be HUMAN or AI/BOT movement?`;
             </div>
           `;
         },
-        onFailure: (result) => {
+        onFailure: async (result) => {
+          // Skip if already verified via onTargetHit
+          if (alreadyVerified) return;
+
+          const serverResult = await verifyWithServer(result.movementData, result.targetHits || 0);
+          const passed = serverResult ? serverResult.verified : false;
+          await recordHumanResult(passed, serverResult);
+
           const aiPrompt = generateAIPrompt(result.movementData, false);
           const resultWithoutData = { ...result };
           delete resultWithoutData.movementData;
@@ -534,7 +638,10 @@ Based on your analysis, does this appear to be HUMAN or AI/BOT movement?`;
           resultEl.innerHTML = `
             <h3>Failed${result.aiDetected ? ' - AI Detected' : ''}</h3>
             <p>Reason: ${result.reason} | Checks passed: ${result.checksPassed}/7</p>
-            <pre>${JSON.stringify(resultWithoutData, null, 2)}</pre>
+            <p style="color: #4cc9f0;">Server: ${passed ? 'PASSED' : 'FAILED'} |
+              <a href="/api/confusion-matrix" target="_blank" style="color: #06d6a0;">View Confusion Matrix</a>
+            </p>
+            <pre>${JSON.stringify(serverResult || resultWithoutData, null, 2)}</pre>
             <div class="ai-prompt-section">
               <h4>Ask an AI to analyze this movement data:</h4>
               <div class="ai-prompt-box">
