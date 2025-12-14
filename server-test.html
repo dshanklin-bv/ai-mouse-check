@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Mouse Check - Server-Side Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      min-height: 100vh;
+      color: #c9d1d9;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: #58a6ff;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #238636;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .tagline {
+      color: #8b949e;
+      font-size: 1rem;
+    }
+
+    .warning {
+      background: rgba(187, 128, 9, 0.15);
+      border: 1px solid #bb8009;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #d29922;
+    }
+
+    .section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      color: #58a6ff;
+    }
+
+    .capture-area {
+      background: #0d1117;
+      border: 2px dashed #30363d;
+      border-radius: 8px;
+      height: 300px;
+      position: relative;
+      cursor: crosshair;
+      overflow: hidden;
+    }
+
+    .capture-area.active {
+      border-color: #58a6ff;
+      border-style: solid;
+    }
+
+    .capture-area .prompt {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #8b949e;
+    }
+
+    .capture-area .prompt.hidden {
+      display: none;
+    }
+
+    .capture-area svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .capture-area path {
+      fill: none;
+      stroke: #58a6ff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      opacity: 0.7;
+    }
+
+    .target {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: #238636;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(35, 134, 54, 0.4);
+      pointer-events: none;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      background: #0d1117;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #8b949e;
+      text-transform: uppercase;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 8px;
+      margin-top: 12px;
+    }
+
+    .btn-primary {
+      background: #238636;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2ea043;
+    }
+
+    .btn-primary:disabled {
+      background: #21262d;
+      color: #8b949e;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    .btn-secondary:hover {
+      background: #30363d;
+    }
+
+    .server-response {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .server-response.show {
+      display: block;
+    }
+
+    .response-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.verified {
+      background: #238636;
+      color: #fff;
+    }
+
+    .status-badge.failed {
+      background: #da3633;
+      color: #fff;
+    }
+
+    .status-badge.ai-detected {
+      background: #a371f7;
+      color: #fff;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    pre .key { color: #79c0ff; }
+    pre .string { color: #a5d6ff; }
+    pre .number { color: #56d4dd; }
+    pre .boolean { color: #ff7b72; }
+
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: #0d1117;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .check-item.passed {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .check-item.failed {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f85149;
+    }
+
+    .signature-box {
+      background: #0d1117;
+      border: 1px solid #238636;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 12px;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 11px;
+      color: #3fb950;
+    }
+
+    .ai-prompt-section {
+      margin-top: 20px;
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .ai-prompt-section h4 {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: #58a6ff;
+    }
+
+    .ai-prompt-box {
+      position: relative;
+    }
+
+    .ai-prompt-box textarea {
+      width: 100%;
+      height: 180px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #8b949e;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .copy-btn:hover {
+      background: #2ea043;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #8b949e;
+      font-size: 13px;
+    }
+
+    footer a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">SERVER-SIDE VERIFICATION</span>
+      <h1>AI Mouse Check - Server Test</h1>
+      <p class="tagline">Tamper-proof verification with cryptographic signatures</p>
+    </header>
+
+    <div class="warning">
+      <strong>Local testing only.</strong> Run <code>npm run server</code> first. This page sends movement data to <code>http://localhost:3847/api/verify</code> for server-side analysis.
+    </div>
+
+    <section class="section">
+      <h2>Capture Movement</h2>
+      <p style="color: #8b949e; margin-bottom: 12px; font-size: 14px;">
+        Move your mouse in the box below. Hit the green targets. When ready, click "Verify with Server".
+      </p>
+
+      <div class="capture-area" id="captureArea">
+        <svg><path id="pathEl" d=""></path></svg>
+        <div class="target" id="target">✓</div>
+        <div class="prompt" id="prompt">
+          <div style="font-size: 16px; margin-bottom: 6px;">Move mouse here to start</div>
+          <div style="font-size: 13px;">Hit 5 targets, then verify</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="pointCount">0</div>
+          <div class="stat-label">Points</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="targetHits">0</div>
+          <div class="stat-label">Targets</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="duration">0s</div>
+          <div class="stat-label">Duration</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="serverStatus">—</div>
+          <div class="stat-label">Server</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="verifyBtn" disabled>Verify with Server</button>
+      <button class="btn btn-secondary" id="resetBtn">Reset</button>
+    </section>
+
+    <section class="section server-response" id="serverResponse">
+      <div class="response-header">
+        <h2>Server Response</h2>
+        <span class="status-badge" id="statusBadge">—</span>
+        <span class="status-badge ai-detected" id="aiBadge" style="display: none;">AI DETECTED</span>
+      </div>
+
+      <div class="checks-grid" id="checksGrid"></div>
+
+      <div id="signatureSection" style="display: none;">
+        <h3 style="font-size: 14px; color: #3fb950; margin-bottom: 8px;">✓ Cryptographic Signature</h3>
+        <div class="signature-box" id="signatureBox"></div>
+        <p style="font-size: 12px; color: #8b949e; margin-top: 8px;">
+          This signature was generated server-side using HMAC-SHA256. Store it with your database record as proof of human verification.
+        </p>
+      </div>
+
+      <details style="margin-top: 16px;">
+        <summary style="cursor: pointer; color: #58a6ff; font-size: 13px;">View Full Response</summary>
+        <pre id="fullResponse" style="margin-top: 8px;"></pre>
+      </details>
+
+      <div class="ai-prompt-section" id="aiPromptSection">
+        <h4>Ask an AI to verify this movement:</h4>
+        <div class="ai-prompt-box">
+          <button class="copy-btn" onclick="copyPrompt()">Copy</button>
+          <textarea id="aiPrompt" readonly></textarea>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <a href="index.html">← Back to Demo</a> ·
+      <a href="https://github.com/dshanklin-bv/ai-mouse-check">GitHub</a>
+    </footer>
+  </div>
+
+  <script>
+    const captureArea = document.getElementById('captureArea');
+    const pathEl = document.getElementById('pathEl');
+    const target = document.getElementById('target');
+    const prompt = document.getElementById('prompt');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const serverResponse = document.getElementById('serverResponse');
+
+    let movementData = [];
+    let targetHits = 0;
+    let targetX = 0, targetY = 0, targetMoveTime = 0;
+    let startTime = null;
+    let isCapturing = false;
+
+    // Check server status on load
+    fetch('http://localhost:3847/api/health')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('serverStatus').textContent = '✓';
+        document.getElementById('serverStatus').style.color = '#3fb950';
+      })
+      .catch(() => {
+        document.getElementById('serverStatus').textContent = '✗';
+        document.getElementById('serverStatus').style.color = '#f85149';
+      });
+
+    function moveTarget() {
+      const rect = captureArea.getBoundingClientRect();
+      const margin = 60;
+      targetX = margin + Math.random() * (rect.width - margin * 2);
+      targetY = margin + Math.random() * (rect.height - margin * 2);
+      target.style.left = (targetX - 25) + 'px';
+      target.style.top = (targetY - 25) + 'px';
+      targetMoveTime = Date.now();
+    }
+
+    captureArea.addEventListener('mouseenter', () => {
+      isCapturing = true;
+      captureArea.classList.add('active');
+      prompt.classList.add('hidden');
+      target.style.display = 'flex';
+      if (!startTime) startTime = Date.now();
+      moveTarget();
+    });
+
+    captureArea.addEventListener('mouseleave', () => {
+      isCapturing = false;
+      captureArea.classList.remove('active');
+    });
+
+    captureArea.addEventListener('mousemove', (e) => {
+      if (!isCapturing) return;
+
+      const rect = captureArea.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const t = Date.now();
+
+      movementData.push({ x, y, t });
+
+      // Check target hit
+      const dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
+      if (dist < 35 && targetMoveTime > 0 && (t - targetMoveTime) > 150) {
+        targetHits++;
+        document.getElementById('targetHits').textContent = targetHits;
+        moveTarget();
+      }
+
+      // Update stats
+      document.getElementById('pointCount').textContent = movementData.length;
+      document.getElementById('duration').textContent = ((t - startTime) / 1000).toFixed(1) + 's';
+
+      // Enable verify button
+      if (movementData.length > 20 && targetHits >= 5) {
+        verifyBtn.disabled = false;
+      }
+
+      // Draw path (keep last 300 points)
+      if (movementData.length > 300) {
+        movementData = movementData.slice(-300);
+      }
+
+      if (movementData.length > 1) {
+        let d = `M ${movementData[0].x} ${movementData[0].y}`;
+        for (let i = 1; i < movementData.length; i++) {
+          d += ` L ${movementData[i].x} ${movementData[i].y}`;
+        }
+        pathEl.setAttribute('d', d);
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      movementData = [];
+      targetHits = 0;
+      startTime = null;
+      isCapturing = false;
+      pathEl.setAttribute('d', '');
+      target.style.display = 'none';
+      prompt.classList.remove('hidden');
+      captureArea.classList.remove('active');
+      verifyBtn.disabled = true;
+      serverResponse.classList.remove('show');
+      document.getElementById('pointCount').textContent = '0';
+      document.getElementById('targetHits').textContent = '0';
+      document.getElementById('duration').textContent = '0s';
+    });
+
+    verifyBtn.addEventListener('click', async () => {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Verifying...';
+
+      try {
+        const response = await fetch('http://localhost:3847/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            points: movementData,
+            targetHits: targetHits,
+            recordId: 'test-' + Date.now()
+          })
+        });
+
+        const result = await response.json();
+        displayResult(result);
+      } catch (err) {
+        alert('Server error: ' + err.message + '\n\nMake sure to run: npm run server');
+      }
+
+      verifyBtn.textContent = 'Verify with Server';
+      verifyBtn.disabled = false;
+    });
+
+    function displayResult(result) {
+      serverResponse.classList.add('show');
+
+      // Status badge
+      const statusBadge = document.getElementById('statusBadge');
+      if (result.verified) {
+        statusBadge.textContent = 'VERIFIED';
+        statusBadge.className = 'status-badge verified';
+      } else {
+        statusBadge.textContent = 'FAILED';
+        statusBadge.className = 'status-badge failed';
+      }
+
+      // AI detected badge
+      const aiBadge = document.getElementById('aiBadge');
+      aiBadge.style.display = result.aiDetected ? 'inline-block' : 'none';
+
+      // Checks grid
+      const checksGrid = document.getElementById('checksGrid');
+      const checkNames = ['Speed Variation', 'Path Curves', 'Micro-jitter', 'Timing', 'Continuous Flow', 'Not Robotic'];
+      const checkKeys = ['speed', 'curves', 'jitter', 'timing', 'continuous', 'notRobotic'];
+
+      checksGrid.innerHTML = checkKeys.map((key, i) => {
+        const passed = result.checks[key];
+        return `<div class="check-item ${passed ? 'passed' : 'failed'}">
+          ${passed ? '✓' : '✗'} ${checkNames[i]}
+        </div>`;
+      }).join('') + `<div class="check-item ${targetHits >= 5 ? 'passed' : 'failed'}">
+        ${targetHits >= 5 ? '✓' : '✗'} Targets (${targetHits}/5)
+      </div>`;
+
+      // Signature
+      const signatureSection = document.getElementById('signatureSection');
+      if (result.verified && result.signature) {
+        signatureSection.style.display = 'block';
+        document.getElementById('signatureBox').textContent = result.signature;
+      } else {
+        signatureSection.style.display = 'none';
+      }
+
+      // Full response
+      document.getElementById('fullResponse').innerHTML = syntaxHighlight(JSON.stringify(result, null, 2));
+
+      // AI prompt
+      generateAIPrompt(result);
+    }
+
+    function syntaxHighlight(json) {
+      return json
+        .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+        .replace(/: "([^"]+)"/g, ': <span class="string">"$1"</span>')
+        .replace(/: (\d+\.?\d*)/g, ': <span class="number">$1</span>')
+        .replace(/: (true|false)/g, ': <span class="boolean">$1</span>');
+    }
+
+    function generateAIPrompt(result) {
+      const samplePoints = movementData.slice(0, 50);
+      const duration = movementData.length > 1
+        ? ((movementData[movementData.length-1].t - movementData[0].t) / 1000).toFixed(2)
+        : 0;
+
+      const prompt = `Analyze this mouse movement data and determine if it appears to be from a human or an AI/bot.
+
+The data represents ${movementData.length} movement points recorded during a human verification test.
+Each point has x (horizontal position), y (vertical position), and t (timestamp in milliseconds).
+
+SERVER-SIDE ANALYSIS RESULTS:
+- Verified: ${result.verified}
+- AI Detected: ${result.aiDetected}
+- Checks Passed: ${result.checksPassed}/7
+
+Here is a sample of the movement data (first 50 points):
+${JSON.stringify(samplePoints, null, 2)}
+
+Summary statistics:
+- Total points: ${movementData.length}
+- Duration: ${duration} seconds
+- Points per second: ${(movementData.length / duration).toFixed(1)}
+
+Please analyze:
+1. Does the movement show natural speed variation (acceleration/deceleration)?
+2. Are the paths curved naturally or straight robotic lines?
+3. Is there natural micro-jitter/tremor in the movement?
+4. Are the timing gaps between points consistent with human behavior?
+5. Does it look like continuous human mouse movement or discrete AI jumps?
+
+Do you agree with the server's assessment? Is this HUMAN or AI/BOT movement?`;
+
+      document.getElementById('aiPrompt').value = prompt;
+    }
+
+    function copyPrompt() {
+      const textarea = document.getElementById('aiPrompt');
+      textarea.select();
+      document.execCommand('copy');
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+  </script>
+</body>
+</html>
