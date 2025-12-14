@@ -10,31 +10,31 @@
 const crypto = require('crypto');
 
 // Detection version - increment when changing thresholds or signals
-const DETECTION_VERSION = '1.4.0';
+const DETECTION_VERSION = '1.5.0';
 const DETECTION_CONFIG = {
-  signalThreshold: 3,              // Fail if 3+ signals trigger
+  signalThreshold: 4,              // Fail if 4+ signals trigger (raised from 3)
   thresholds: {
-    // Adjusted based on confusion matrix analysis (v1.4.0)
+    // Adjusted based on confusion matrix analysis (v1.5.0)
+    // Analysis of 14 humans, 11 bots showed 71% false positive rate with v1.4.0
     jerkSpikeRatio: 0.035,
     accelSignChangeRate: 0.35,
     curvatureChangeRate: 0.12,
     velocityPeaksPerSecond: 2.0,
     pathEfficiency: 0.75,
-    noiseAutocorr: 0.08,           // Relaxed from 0.15 (some humans have low autocorr)
-    directionEntropy: 1.4,
+    noiseAutocorr: 0.08,
+    directionEntropy: 1.2,         // Relaxed from 1.4 (43% of humans were <1.4, bots all <1.25)
     reversalRate: 0.02,
-    // hesitationRate: REMOVED - bots hesitate MORE than some humans
     jerkAutocorr: 0.12,
     linearAccelRatio: 0.3,
     symmetryRatio: 0.6,
-    xyNoiseCorr: 0.10,             // Relaxed from 0.15
-    perfectStartRatio: 0.9,        // Relaxed from 0.7 (confident humans start cleanly)
+    xyNoiseCorr: 0.03,             // Relaxed from 0.10 (57% of humans were <0.10!)
+    perfectStartRatio: 0.9,
     smoothStartRatio: 0.6,
     fidgetRatio: 0.10,
-    // NEW strong signals based on analysis
-    highReversalRatio: 0.15,       // Bots: 0.29-0.61, Humans: 0-0.01
-    lowSmoothRatio: 0.45,          // Bots: 0.21-0.37, Humans: 0.62-0.85
-    highCurvatureChange: 0.55      // Bots: 0.72-0.79, Humans: 0.23-0.41
+    // Strong signals with ZERO overlap (v1.4.0) - these work great
+    highReversalRatio: 0.15,       // Bots: 0.30-0.75, Humans: 0-0.024
+    lowSmoothRatio: 0.45,          // Bots: 0.12-0.35, Humans: 0.71-0.85
+    highCurvatureChange: 0.55      // Bots: 0.75-0.82, Humans: 0.20-0.41
   }
 };
 
@@ -559,34 +559,32 @@ function analyzeMovement(points, options = {}) {
   const fidgetRatio = stillPeriods > 0 ? fidgetCount / stillPeriods : 0;
 
   // Combined anti-Bezier check with signals for bot detection
-  // Updated in v1.4.0 based on confusion matrix analysis
-  // Key insight: reversalRatio and smoothRatio are STRONG differentiators
+  // Updated in v1.5.0 based on confusion matrix analysis (14 humans, 11 bots)
+  // Key changes: raised threshold to 4, relaxed overlapping signals
   const bezierSignals = [
-    // Original signals (with adjusted thresholds)
-    jerkSpikeRatio < 0.035,          // Too smooth jerk
-    accelSignChangeRate < 0.35,      // Too few direction corrections
-    curvatureChangeRate < 0.12,      // Too smooth curves
-    velocityPeaksPerSecond < 2.0,    // Not enough sub-movements
-    pathEfficiency > 0.75,           // Too efficient/direct path
-    Math.abs(noiseAutocorr) < 0.08,  // Uncorrelated position noise (relaxed)
-    directionEntropy < 1.4,          // Too predictable direction changes
-    reversalRate < 0.02,             // No overshoot corrections
-    // hesitationRate REMOVED - bots actually hesitate more than some humans!
-    Math.abs(jerkAutocorr) < 0.12,   // Jerk is white noise (no temporal structure)
-    linearAccelRatio > 0.3,          // Too many linear acceleration segments (Bezier)
-    symmetryRatio > 0.6,             // Too symmetric velocity profiles (ease-in-out)
-    xyNoiseCorr < 0.10,              // X-Y noise uncorrelated (relaxed)
-    perfectStartRatio > 0.9,         // Too many perfect starts (relaxed - humans can be confident)
-    smoothStartRatio > 0.6,          // Too many smooth acceleration starts
-    fidgetRatio < 0.10,              // No fidgeting during pauses
-    // NEW strong signals from confusion matrix analysis (v1.4.0)
-    // These have HUGE gaps between humans and bots:
-    reversalRatio > 0.15,            // HIGH reversal = BOT (bots: 0.29-0.61, humans: 0-0.01)
-    smoothRatio < 0.45,              // LOW smooth = BOT (bots: 0.21-0.37, humans: 0.62-0.85)
-    curvatureChangeRate > 0.55       // HIGH curvature change = BOT (bots: 0.72-0.79, humans: 0.23-0.41)
+    // Original signals (weak - have some overlap with humans)
+    jerkSpikeRatio < 0.035,          // 0: Too smooth jerk
+    accelSignChangeRate < 0.35,      // 1: Too few direction corrections
+    curvatureChangeRate < 0.12,      // 2: Too smooth curves
+    velocityPeaksPerSecond < 2.0,    // 3: Not enough sub-movements
+    pathEfficiency > 0.75,           // 4: Too efficient/direct path
+    Math.abs(noiseAutocorr) < 0.08,  // 5: Uncorrelated position noise
+    directionEntropy < 1.2,          // 6: Too predictable (relaxed from 1.4)
+    reversalRate < 0.02,             // 7: No overshoot corrections
+    Math.abs(jerkAutocorr) < 0.12,   // 8: Jerk is white noise
+    linearAccelRatio > 0.3,          // 9: Too many linear accel segments
+    symmetryRatio > 0.6,             // 10: Too symmetric velocity profiles
+    xyNoiseCorr < 0.03,              // 11: X-Y noise uncorrelated (relaxed from 0.10)
+    perfectStartRatio > 0.9,         // 12: Too many perfect starts
+    smoothStartRatio > 0.6,          // 13: Too many smooth starts
+    fidgetRatio < 0.10,              // 14: No fidgeting during pauses
+    // STRONG signals with ZERO overlap between humans and bots:
+    reversalRatio > 0.15,            // 15: HIGH reversal = BOT (0/14 humans, 11/11 bots)
+    smoothRatio < 0.45,              // 16: LOW smooth = BOT (0/14 humans, 11/11 bots)
+    curvatureChangeRate > 0.55       // 17: HIGH curvature change = BOT (0/14 humans, 11/11 bots)
   ];
   const bezierSignalCount = bezierSignals.filter(Boolean).length;
-  const isBezierLike = bezierSignalCount >= 3; // Fail if 3+ signals
+  const isBezierLike = bezierSignalCount >= 4; // Fail if 4+ signals (raised from 3)
 
   const isTimingTooRegular = timingCV < 0.12;
 

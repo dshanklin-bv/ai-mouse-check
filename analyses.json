@@ -40,6 +40,45 @@
         "hesitationRate": { "humans": "0-0.038", "bots": "0.015-0.034", "gap": "OVERLAP" }
       },
       "expectedImprovement": "Reduce false positives from 40% while maintaining 100% bot detection"
+    },
+    {
+      "version": 2,
+      "timestamp": 1734210000000,
+      "detectionVersion": "1.4.0 → 1.5.0",
+      "dataRange": {
+        "humanTests": 14,
+        "botTests": 11,
+        "humanPassed": 4,
+        "humanFailed": 10,
+        "botPassed": 0,
+        "botFailed": 11
+      },
+      "performance": {
+        "humanPassRate": "28.6%",
+        "botDetectionRate": "100%",
+        "falsePositiveRate": "71.4%",
+        "falseNegativeRate": "0%"
+      },
+      "keyFindings": [
+        "False positive rate increased dramatically to 71.4% - threshold of 3 signals too aggressive",
+        "Strong signals (reversalRatio, smoothRatio, curvatureChangeRate>0.55) working perfectly: 0/14 humans triggered, 11/11 bots triggered",
+        "Weak signals with overlap causing false positives: directionEntropy<1.4 (43% humans), xyNoiseCorr<0.10 (57% humans), perfectStartRatio>0.9 (36% humans)",
+        "Humans combining 3 weak signals enough to fail, while bots trigger 5+ signals including all strong ones"
+      ],
+      "changes": [
+        "Raised signal threshold: 3 → 4 (key change)",
+        "Relaxed directionEntropy: 1.4 → 1.2 (43% of humans were below 1.4, all bots below 1.25)",
+        "Relaxed xyNoiseCorr: 0.10 → 0.03 (57% of humans were below 0.10!)"
+      ],
+      "metricComparison": {
+        "directionEntropy": { "humans": "1.22-1.52", "bots": "0.80-1.25", "gap": "OVERLAP at 1.4" },
+        "xyNoiseCorr": { "humans": "0.02-0.54", "bots": "0.01-0.28", "gap": "HEAVY OVERLAP" },
+        "perfectStartRatio": { "humans": "0-1.0", "bots": "0.25-1.0", "gap": "OVERLAP" },
+        "reversalRatio": { "humans": "0-0.024", "bots": "0.30-0.75", "gap": "HUGE - NO OVERLAP" },
+        "smoothRatio": { "humans": "0.71-0.85", "bots": "0.12-0.35", "gap": "HUGE - NO OVERLAP" },
+        "curvatureChangeRate>0.55": { "humans": "0.20-0.41", "bots": "0.75-0.82", "gap": "HUGE - NO OVERLAP" }
+      },
+      "expectedImprovement": "Reduce false positives from 71.4% to <20% by raising threshold to 4 and relaxing overlapping signals. Bots still trigger 5+ signals so detection should remain 100%."
     }
   ]
 }
