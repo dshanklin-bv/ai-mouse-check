@@ -93,7 +93,7 @@ The system uses a "swiss cheese" model with multiple independent detection layer
 3. **Micro-movements** - Detects natural physiological tremor
 4. **Timing Analysis** - Identifies human-like pauses and continuous movement
 5. **Continuous Flow** - Measures point density and time gaps between events
-6. **Straight Line Detection** - Fails if consecutive points form perfect lines
+6. **Straight Line Detection** - Measures deviation from best-fit line; zero-noise paths fail
 7. **Target Tracking** - Interactive challenge requiring purposeful control
 
 An AI must pass ALL checks simultaneously within the time limit - failing any single check blocks verification.
@@ -116,6 +116,8 @@ npm install
 npm run server
 # Server runs at http://localhost:3847
 ```
+
+Open `http://localhost:3847/server-test.html` to test server-side verification with a 30-second time limit. The test page sends raw movement data to the server API and displays the cryptographic signature on success.
 
 ### Server-Side API
 
