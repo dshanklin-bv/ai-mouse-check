@@ -1,0 +1,29 @@
+{
+  "name": "ai-mouse-check",
+  "version": "1.0.0",
+  "description": "Human verification through mouse movement analysis - detects AI/bot mouse control",
+  "main": "ai-mouse-check.js",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dshanklin-bv/ai-mouse-check.git"
+  },
+  "keywords": [
+    "captcha",
+    "human-verification",
+    "bot-detection",
+    "ai-detection",
+    "mouse-movement",
+    "security",
+    "anti-bot",
+    "browser"
+  ],
+  "author": "dshanklin-bv",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dshanklin-bv/ai-mouse-check/issues"
+  },
+  "homepage": "https://dshanklin-bv.github.io/ai-mouse-check"
+}
