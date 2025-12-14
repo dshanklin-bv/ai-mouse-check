@@ -117,6 +117,58 @@
       color: #ccc;
     }
 
+    .ai-prompt-section {
+      margin-top: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .ai-prompt-section h4 {
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: #4cc9f0;
+    }
+
+    .ai-prompt-box {
+      position: relative;
+    }
+
+    .ai-prompt-box textarea {
+      width: 100%;
+      height: 200px;
+      background: #0d1117;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 11px;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #4cc9f0;
+      color: #1a1a2e;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .copy-btn:hover {
+      background: #06d6a0;
+    }
+
+    .copy-btn.copied {
+      background: #06d6a0;
+    }
+
     .features {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -406,6 +458,44 @@ app.<span class="function">post</span>(<span class="string">'/api/human-verify'<
 
   <script src="ai-mouse-check.js"></script>
   <script>
+    function generateAIPrompt(movementData, verified) {
+      const samplePoints = movementData.slice(0, 50); // First 50 points
+      const prompt = `Analyze this mouse movement data and determine if it appears to be from a human or an AI/bot.
+
+The data represents ${movementData.length} movement points recorded during a human verification test.
+Each point has x (horizontal position), y (vertical position), and t (timestamp in milliseconds).
+
+Here is a sample of the movement data (first 50 points):
+${JSON.stringify(samplePoints, null, 2)}
+
+Summary statistics:
+- Total points: ${movementData.length}
+- Duration: ${movementData.length > 1 ? ((movementData[movementData.length-1].t - movementData[0].t) / 1000).toFixed(2) : 0} seconds
+- Points per second: ${movementData.length > 1 ? (movementData.length / ((movementData[movementData.length-1].t - movementData[0].t) / 1000)).toFixed(1) : 0}
+
+Please analyze:
+1. Does the movement show natural speed variation (acceleration/deceleration)?
+2. Are the paths curved naturally or straight robotic lines?
+3. Is there natural micro-jitter/tremor in the movement?
+4. Are the timing gaps between points consistent with human behavior?
+5. Does it look like continuous human mouse movement or discrete AI jumps?
+
+Based on your analysis, does this appear to be HUMAN or AI/BOT movement?`;
+      return prompt;
+    }
+
+    function copyPrompt(btn) {
+      const textarea = btn.parentElement.querySelector('textarea');
+      textarea.select();
+      document.execCommand('copy');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy Prompt';
+        btn.classList.remove('copied');
+      }, 2000);
+    }
+
     function runDemo() {
       const resultEl = document.getElementById('result');
       resultEl.className = 'result';
@@ -414,19 +504,47 @@ app.<span class="function">post</span>(<span class="string">'/api/human-verify'<
       const checker = new AIMouseCheck({
         timeout: 10000,
         onSuccess: (result) => {
+          const aiPrompt = generateAIPrompt(result.movementData, true);
+          const resultWithoutData = { ...result };
+          delete resultWithoutData.movementData;
+
           resultEl.className = 'result success';
           resultEl.innerHTML = `
             <h3>Verified!</h3>
             <p>You passed all 7 checks in ${(result.duration / 1000).toFixed(1)} seconds.</p>
-            <pre>${JSON.stringify(result, null, 2)}</pre>
+            <pre>${JSON.stringify(resultWithoutData, null, 2)}</pre>
+            <div class="ai-prompt-section">
+              <h4>Ask an AI to verify this movement data:</h4>
+              <div class="ai-prompt-box">
+                <button class="copy-btn" onclick="copyPrompt(this)">Copy Prompt</button>
+                <textarea readonly>${aiPrompt}</textarea>
+              </div>
+              <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                Copy this prompt and paste it into ChatGPT, Claude, or any AI to get a second opinion on whether the movement looks human.
+              </p>
+            </div>
           `;
         },
         onFailure: (result) => {
+          const aiPrompt = generateAIPrompt(result.movementData, false);
+          const resultWithoutData = { ...result };
+          delete resultWithoutData.movementData;
+
           resultEl.className = 'result failure';
           resultEl.innerHTML = `
             <h3>Failed${result.aiDetected ? ' - AI Detected' : ''}</h3>
             <p>Reason: ${result.reason} | Checks passed: ${result.checksPassed}/7</p>
-            <pre>${JSON.stringify(result, null, 2)}</pre>
+            <pre>${JSON.stringify(resultWithoutData, null, 2)}</pre>
+            <div class="ai-prompt-section">
+              <h4>Ask an AI to analyze this movement data:</h4>
+              <div class="ai-prompt-box">
+                <button class="copy-btn" onclick="copyPrompt(this)">Copy Prompt</button>
+                <textarea readonly>${aiPrompt}</textarea>
+              </div>
+              <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                Copy this prompt and paste it into ChatGPT, Claude, or any AI to analyze why the movement might have failed.
+              </p>
+            </div>
           `;
         }
       });

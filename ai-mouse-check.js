@@ -515,7 +515,8 @@
         signature: hash,
         checksPassed: 7,
         duration,
-        targetHits: this.state.targetHits
+        targetHits: this.state.targetHits,
+        movementData: this.state.movementData.slice()
       };
 
       const statusEl = this.state.modal.querySelector('.ai-mouse-check-status');
@@ -542,7 +543,8 @@
         reason,
         aiDetected,
         checksPassed,
-        duration: Date.now() - this.state.startTime
+        duration: Date.now() - this.state.startTime,
+        movementData: this.state.movementData.slice()
       };
 
       const statusEl = this.state.modal.querySelector('.ai-mouse-check-status');

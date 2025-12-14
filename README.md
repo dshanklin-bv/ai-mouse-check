@@ -98,6 +98,70 @@ The system uses a "swiss cheese" model with multiple independent detection layer
 
 An AI must pass ALL checks simultaneously within the time limit - failing any single check blocks verification.
 
+## Server-Side Verification (Tamper-Proof)
+
+The client-side library is great for deterrence, but can be bypassed by modifying JavaScript. For tamper-proof verification, run the same detection algorithms server-side.
+
+### Local Testing
+
+```bash
+# Clone the repo
+git clone https://github.com/dshanklin-bv/ai-mouse-check.git
+cd ai-mouse-check
+
+# Install dependencies
+npm install
+
+# Start the server
+npm run server
+# Server runs at http://localhost:3847
+```
+
+### Server-Side API
+
+```javascript
+// POST /api/verify
+// Send raw movement data for server-side verification
+
+const response = await fetch('http://localhost:3847/api/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    points: movementData,     // Array of {x, y, t} points
+    targetHits: 5,            // Number of targets hit
+    recordId: 'task-123'      // Optional ID to associate
+  })
+});
+
+const result = await response.json();
+// {
+//   verified: true,
+//   signature: "abc123...",    // Cryptographic signature
+//   sessionId: "xyz789...",    // For later verification
+//   checks: { speed: true, curves: true, ... }
+// }
+```
+
+### Using the Detection Module Directly
+
+```javascript
+const { analyzeMovement, generateSignature } = require('./server/detection');
+
+// Analyze movement data
+const result = analyzeMovement(points, { targetHits: 5 });
+
+if (result.verified) {
+  // Generate cryptographic signature
+  const sig = generateSignature(process.env.SECRET_KEY, {
+    points,
+    recordId: 'task-123',
+    checksPassed: result.checksPassed
+  });
+
+  // Store sig.signature with your database record
+}
+```
+
 ## Why This Works
 
 Programmatic mouse control (like browser automation tools) typically:
