@@ -10,26 +10,31 @@
 const crypto = require('crypto');
 
 // Detection version - increment when changing thresholds or signals
-const DETECTION_VERSION = '1.3.0';
+const DETECTION_VERSION = '1.4.0';
 const DETECTION_CONFIG = {
   signalThreshold: 3,              // Fail if 3+ signals trigger
   thresholds: {
+    // Adjusted based on confusion matrix analysis (v1.4.0)
     jerkSpikeRatio: 0.035,
     accelSignChangeRate: 0.35,
     curvatureChangeRate: 0.12,
     velocityPeaksPerSecond: 2.0,
     pathEfficiency: 0.75,
-    noiseAutocorr: 0.15,
+    noiseAutocorr: 0.08,           // Relaxed from 0.15 (some humans have low autocorr)
     directionEntropy: 1.4,
     reversalRate: 0.02,
-    hesitationRate: 0.01,
+    // hesitationRate: REMOVED - bots hesitate MORE than some humans
     jerkAutocorr: 0.12,
     linearAccelRatio: 0.3,
     symmetryRatio: 0.6,
-    xyNoiseCorr: 0.15,
-    perfectStartRatio: 0.7,
+    xyNoiseCorr: 0.10,             // Relaxed from 0.15
+    perfectStartRatio: 0.9,        // Relaxed from 0.7 (confident humans start cleanly)
     smoothStartRatio: 0.6,
-    fidgetRatio: 0.10
+    fidgetRatio: 0.10,
+    // NEW strong signals based on analysis
+    highReversalRatio: 0.15,       // Bots: 0.29-0.61, Humans: 0-0.01
+    lowSmoothRatio: 0.45,          // Bots: 0.21-0.37, Humans: 0.62-0.85
+    highCurvatureChange: 0.55      // Bots: 0.72-0.79, Humans: 0.23-0.41
   }
 };
 
@@ -553,29 +558,35 @@ function analyzeMovement(points, options = {}) {
   }
   const fidgetRatio = stillPeriods > 0 ? fidgetCount / stillPeriods : 0;
 
-  // Combined anti-Bezier check with 16 signals for 95% detection
-  // Bezier bots fail multiple of these:
+  // Combined anti-Bezier check with signals for bot detection
+  // Updated in v1.4.0 based on confusion matrix analysis
+  // Key insight: reversalRatio and smoothRatio are STRONG differentiators
   const bezierSignals = [
+    // Original signals (with adjusted thresholds)
     jerkSpikeRatio < 0.035,          // Too smooth jerk
     accelSignChangeRate < 0.35,      // Too few direction corrections
     curvatureChangeRate < 0.12,      // Too smooth curves
     velocityPeaksPerSecond < 2.0,    // Not enough sub-movements
     pathEfficiency > 0.75,           // Too efficient/direct path
-    Math.abs(noiseAutocorr) < 0.15,  // Uncorrelated position noise
+    Math.abs(noiseAutocorr) < 0.08,  // Uncorrelated position noise (relaxed)
     directionEntropy < 1.4,          // Too predictable direction changes
     reversalRate < 0.02,             // No overshoot corrections
-    hesitationRate < 0.01,           // No hesitation pauses
+    // hesitationRate REMOVED - bots actually hesitate more than some humans!
     Math.abs(jerkAutocorr) < 0.12,   // Jerk is white noise (no temporal structure)
     linearAccelRatio > 0.3,          // Too many linear acceleration segments (Bezier)
     symmetryRatio > 0.6,             // Too symmetric velocity profiles (ease-in-out)
-    xyNoiseCorr < 0.15,              // X-Y noise uncorrelated (independent Gaussian)
-    // Movement initiation signals (humans waver, bots commit)
-    perfectStartRatio > 0.7,         // Too many perfect direction starts
+    xyNoiseCorr < 0.10,              // X-Y noise uncorrelated (relaxed)
+    perfectStartRatio > 0.9,         // Too many perfect starts (relaxed - humans can be confident)
     smoothStartRatio > 0.6,          // Too many smooth acceleration starts
-    fidgetRatio < 0.10               // No fidgeting during pauses
+    fidgetRatio < 0.10,              // No fidgeting during pauses
+    // NEW strong signals from confusion matrix analysis (v1.4.0)
+    // These have HUGE gaps between humans and bots:
+    reversalRatio > 0.15,            // HIGH reversal = BOT (bots: 0.29-0.61, humans: 0-0.01)
+    smoothRatio < 0.45,              // LOW smooth = BOT (bots: 0.21-0.37, humans: 0.62-0.85)
+    curvatureChangeRate > 0.55       // HIGH curvature change = BOT (bots: 0.72-0.79, humans: 0.23-0.41)
   ];
   const bezierSignalCount = bezierSignals.filter(Boolean).length;
-  const isBezierLike = bezierSignalCount >= 3; // Fail if 3+ signals - balanced for humans
+  const isBezierLike = bezierSignalCount >= 3; // Fail if 3+ signals
 
   const isTimingTooRegular = timingCV < 0.12;
 
@@ -631,7 +642,9 @@ function analyzeMovement(points, options = {}) {
       fidgetRatio,
       bezierSignalCount,
       isBezierLike,
-      isTimingTooRegular
+      isTimingTooRegular,
+      // v1.4.0: Signal trigger details for debugging
+      triggeredSignals: bezierSignals.map((triggered, i) => triggered ? i : -1).filter(i => i >= 0)
     }
   };
 }
