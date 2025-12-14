@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detection Analyses - AI Mouse Check</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 24px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      color: #58a6ff;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 24px;
+    }
+    .section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      color: #58a6ff;
+      font-size: 18px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #30363d;
+    }
+    .performance-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: #21262d;
+      padding: 16px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      color: #8b949e;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .stat-good { color: #3fb950; }
+    .stat-bad { color: #f85149; }
+    .stat-neutral { color: #58a6ff; }
+    .findings-list, .changes-list {
+      list-style: none;
+      padding: 0;
+    }
+    .findings-list li, .changes-list li {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: #21262d;
+      border-radius: 4px;
+      border-left: 3px solid #58a6ff;
+    }
+    .changes-list li.added { border-left-color: #3fb950; }
+    .changes-list li.removed { border-left-color: #f85149; }
+    .changes-list li.modified { border-left-color: #d29922; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #30363d;
+    }
+    th {
+      background: #21262d;
+      color: #8b949e;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .gap-huge { color: #3fb950; font-weight: bold; }
+    .gap-overlap { color: #f85149; }
+    .history-table {
+      margin-top: 16px;
+    }
+    .history-table tr { cursor: pointer; }
+    .history-table tr:hover { background: #21262d; }
+    .history-table tr.selected { background: #388bfd33; }
+    .version-badge {
+      background: #238636;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .version-badge.old {
+      background: #30363d;
+      color: #8b949e;
+    }
+    .timestamp {
+      color: #8b949e;
+      font-size: 13px;
+    }
+    .expected-improvement {
+      background: #388bfd22;
+      border: 1px solid #388bfd;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-top: 16px;
+    }
+    .nav-links {
+      margin-bottom: 24px;
+    }
+    .nav-links a {
+      color: #58a6ff;
+      text-decoration: none;
+      margin-right: 16px;
+    }
+    .nav-links a:hover { text-decoration: underline; }
+    .data-range {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      color: #8b949e;
+    }
+    .data-range span {
+      background: #21262d;
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+    #loading {
+      text-align: center;
+      padding: 40px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-links">
+      <a href="index.html">Demo</a>
+      <a href="server-test.html">Server Test</a>
+      <a href="analyses.html">Analyses</a>
+    </div>
+
+    <h1>Detection Analyses</h1>
+    <p class="subtitle">Historical analysis of detection algorithm performance</p>
+
+    <div id="loading">Loading analyses...</div>
+    <div id="content" style="display: none;">
+      <!-- Latest Analysis -->
+      <div class="section" id="latestSection">
+        <h2 class="section-title">
+          Latest Analysis: <span id="latestVersion"></span>
+          <span class="timestamp" id="latestTimestamp"></span>
+        </h2>
+
+        <div class="data-range" id="dataRange"></div>
+
+        <div class="performance-grid" id="performanceGrid"></div>
+
+        <h3 style="color: #c9d1d9; margin: 20px 0 12px;">Key Findings</h3>
+        <ul class="findings-list" id="keyFindings"></ul>
+
+        <h3 style="color: #c9d1d9; margin: 20px 0 12px;">Changes Made</h3>
+        <ul class="changes-list" id="changes"></ul>
+
+        <div id="metricComparisonSection" style="margin-top: 20px;">
+          <h3 style="color: #c9d1d9; margin-bottom: 12px;">Metric Comparison (Human vs Bot)</h3>
+          <table id="metricComparison">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Human Range</th>
+                <th>Bot Range</th>
+                <th>Gap</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="expected-improvement" id="expectedImprovement"></div>
+      </div>
+
+      <!-- Analysis History -->
+      <div class="section">
+        <h2 class="section-title">Analysis History</h2>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Date</th>
+              <th>Detection Ver</th>
+              <th>Human Tests</th>
+              <th>Bot Tests</th>
+              <th>Human Pass</th>
+              <th>Bot Detect</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allAnalyses = [];
+    let selectedVersion = null;
+
+    async function loadAnalyses() {
+      try {
+        const res = await fetch('/api/analyses');
+        const data = await res.json();
+        allAnalyses = data.analyses;
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+        if (data.latest) {
+          displayAnalysis(data.latest);
+        }
+        renderHistory();
+      } catch (e) {
+        document.getElementById('loading').textContent = 'Error loading analyses: ' + e.message;
+      }
+    }
+
+    function displayAnalysis(analysis) {
+      selectedVersion = analysis.version;
+
+      // Version and timestamp
+      document.getElementById('latestVersion').innerHTML =
+        `<span class="version-badge">v${analysis.version}</span>`;
+      document.getElementById('latestTimestamp').textContent =
+        new Date(analysis.timestamp).toLocaleString();
+
+      // Data range
+      const dr = analysis.dataRange;
+      document.getElementById('dataRange').innerHTML = `
+        <span>Human Tests: ${dr.humanTests}</span>
+        <span>Bot Tests: ${dr.botTests}</span>
+        <span>Detection: ${analysis.detectionVersion}</span>
+      `;
+
+      // Performance grid
+      const perf = analysis.performance;
+      document.getElementById('performanceGrid').innerHTML = `
+        <div class="stat-box">
+          <div class="stat-value stat-good">${perf.humanPassRate}</div>
+          <div class="stat-label">Human Pass Rate</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value stat-good">${perf.botDetectionRate}</div>
+          <div class="stat-label">Bot Detection</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value stat-bad">${perf.falsePositiveRate}</div>
+          <div class="stat-label">False Positive</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value ${perf.falseNegativeRate === '0%' || perf.falseNegativeRate === '0.0%' ? 'stat-good' : 'stat-bad'}">${perf.falseNegativeRate}</div>
+          <div class="stat-label">False Negative</div>
+        </div>
+      `;
+
+      // Key findings
+      document.getElementById('keyFindings').innerHTML =
+        analysis.keyFindings.map(f => `<li>${f}</li>`).join('');
+
+      // Changes
+      document.getElementById('changes').innerHTML =
+        analysis.changes.map(c => {
+          let cls = '';
+          if (c.startsWith('ADD') || c.startsWith('add')) cls = 'added';
+          else if (c.startsWith('REMOVE') || c.startsWith('remove')) cls = 'removed';
+          else if (c.startsWith('Relax') || c.includes('→')) cls = 'modified';
+          return `<li class="${cls}">${c}</li>`;
+        }).join('');
+
+      // Metric comparison
+      const mc = analysis.metricComparison;
+      if (mc && Object.keys(mc).length > 0) {
+        document.getElementById('metricComparisonSection').style.display = 'block';
+        const tbody = document.querySelector('#metricComparison tbody');
+        tbody.innerHTML = Object.entries(mc).map(([metric, data]) => `
+          <tr>
+            <td><code>${metric}</code></td>
+            <td>${data.humans}</td>
+            <td>${data.bots}</td>
+            <td class="${data.gap === 'HUGE' ? 'gap-huge' : data.gap === 'OVERLAP' ? 'gap-overlap' : ''}">${data.gap}</td>
+          </tr>
+        `).join('');
+      } else {
+        document.getElementById('metricComparisonSection').style.display = 'none';
+      }
+
+      // Expected improvement
+      if (analysis.expectedImprovement) {
+        document.getElementById('expectedImprovement').innerHTML =
+          `<strong>Expected Improvement:</strong> ${analysis.expectedImprovement}`;
+        document.getElementById('expectedImprovement').style.display = 'block';
+      } else {
+        document.getElementById('expectedImprovement').style.display = 'none';
+      }
+
+      // Update history selection
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('historyBody');
+      tbody.innerHTML = allAnalyses.map(a => {
+        const isSelected = a.version === selectedVersion;
+        return `
+          <tr class="${isSelected ? 'selected' : ''}" onclick="selectAnalysis(${a.version})">
+            <td><span class="version-badge ${a.version !== allAnalyses[0]?.version ? 'old' : ''}">v${a.version}</span></td>
+            <td class="timestamp">${new Date(a.timestamp).toLocaleDateString()}</td>
+            <td>${a.detectionVersion}</td>
+            <td>${a.dataRange.humanTests}</td>
+            <td>${a.dataRange.botTests}</td>
+            <td class="${parseFloat(a.performance.humanPassRate) >= 80 ? 'stat-good' : ''}">${a.performance.humanPassRate}</td>
+            <td class="${parseFloat(a.performance.botDetectionRate) >= 95 ? 'stat-good' : ''}">${a.performance.botDetectionRate}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function selectAnalysis(version) {
+      const analysis = allAnalyses.find(a => a.version === version);
+      if (analysis) {
+        displayAnalysis(analysis);
+      }
+    }
+
+    loadAnalyses();
+  </script>
+</body>
+</html>

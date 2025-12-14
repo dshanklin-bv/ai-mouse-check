@@ -473,6 +473,116 @@ app.delete('/api/movements', (req, res) => {
   }
 });
 
+// ============================================
+// ANALYSES ENDPOINTS
+// ============================================
+
+const ANALYSES_FILE = path.join(__dirname, '..', 'analyses.json');
+
+function loadAnalyses() {
+  try {
+    if (fs.existsSync(ANALYSES_FILE)) {
+      return JSON.parse(fs.readFileSync(ANALYSES_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error loading analyses:', e);
+  }
+  return { analyses: [] };
+}
+
+function saveAnalyses(data) {
+  try {
+    fs.writeFileSync(ANALYSES_FILE, JSON.stringify(data, null, 2));
+    return true;
+  } catch (e) {
+    console.error('Error saving analyses:', e);
+    return false;
+  }
+}
+
+/**
+ * GET /api/analyses
+ * Get all analyses (most recent first)
+ */
+app.get('/api/analyses', (req, res) => {
+  const data = loadAnalyses();
+  const sorted = [...data.analyses].sort((a, b) => b.version - a.version);
+  res.json({
+    count: sorted.length,
+    latest: sorted[0] || null,
+    analyses: sorted
+  });
+});
+
+/**
+ * GET /api/analyses/:version
+ * Get a specific analysis by version
+ */
+app.get('/api/analyses/:version', (req, res) => {
+  const version = parseInt(req.params.version, 10);
+  const data = loadAnalyses();
+  const analysis = data.analyses.find(a => a.version === version);
+  if (!analysis) {
+    return res.status(404).json({ error: 'Analysis not found' });
+  }
+  res.json(analysis);
+});
+
+/**
+ * POST /api/analyses
+ * Create a new analysis from current confusion matrix data
+ */
+app.post('/api/analyses', (req, res) => {
+  try {
+    const { keyFindings, changes, metricComparison, expectedImprovement, detectionVersion } = req.body;
+
+    if (!keyFindings || !changes) {
+      return res.status(400).json({ error: 'keyFindings and changes are required' });
+    }
+
+    const data = loadAnalyses();
+    const nextVersion = data.analyses.length > 0
+      ? Math.max(...data.analyses.map(a => a.version)) + 1
+      : 1;
+
+    const { humanPassed, humanFailed, botPassed, botFailed } = confusionMatrix;
+    const totalHuman = humanPassed + humanFailed;
+    const totalBot = botPassed + botFailed;
+
+    const newAnalysis = {
+      version: nextVersion,
+      timestamp: Date.now(),
+      detectionVersion: detectionVersion || 'unknown',
+      dataRange: {
+        humanTests: totalHuman,
+        botTests: totalBot,
+        humanPassed,
+        humanFailed,
+        botPassed,
+        botFailed
+      },
+      performance: {
+        humanPassRate: totalHuman > 0 ? (humanPassed / totalHuman * 100).toFixed(1) + '%' : 'N/A',
+        botDetectionRate: totalBot > 0 ? (botFailed / totalBot * 100).toFixed(1) + '%' : 'N/A',
+        falsePositiveRate: totalHuman > 0 ? (humanFailed / totalHuman * 100).toFixed(1) + '%' : 'N/A',
+        falseNegativeRate: totalBot > 0 ? (botPassed / totalBot * 100).toFixed(1) + '%' : 'N/A'
+      },
+      keyFindings,
+      changes,
+      metricComparison: metricComparison || {},
+      expectedImprovement: expectedImprovement || ''
+    };
+
+    data.analyses.push(newAnalysis);
+    saveAnalyses(data);
+
+    res.json({ success: true, analysis: newAnalysis });
+  } catch (error) {
+    console.error('Create analysis error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`

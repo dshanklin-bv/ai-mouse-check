@@ -1,0 +1,45 @@
+{
+  "analyses": [
+    {
+      "version": 1,
+      "timestamp": 1734200000000,
+      "detectionVersion": "1.3.0 → 1.4.0",
+      "dataRange": {
+        "humanTests": 10,
+        "botTests": 7,
+        "humanPassed": 6,
+        "humanFailed": 4,
+        "botPassed": 0,
+        "botFailed": 7
+      },
+      "performance": {
+        "humanPassRate": "60%",
+        "botDetectionRate": "100%",
+        "falsePositiveRate": "40%",
+        "falseNegativeRate": "0%"
+      },
+      "keyFindings": [
+        "reversalRatio is strongest differentiator: Humans 0-0.01, Bots 0.29-0.61",
+        "smoothRatio shows huge gap: Humans 0.62-0.85, Bots 0.21-0.37",
+        "curvatureChangeRate: Humans 0.23-0.41, Bots 0.72-0.79",
+        "hesitationRate was counterproductive - bots hesitate MORE than some humans"
+      ],
+      "changes": [
+        "REMOVED hesitationRate signal (causing false positives)",
+        "Relaxed noiseAutocorr: 0.15 → 0.08",
+        "Relaxed xyNoiseCorr: 0.15 → 0.10",
+        "Relaxed perfectStartRatio: 0.7 → 0.9",
+        "ADDED reversalRatio > 0.15 as bot signal",
+        "ADDED smoothRatio < 0.45 as bot signal",
+        "ADDED curvatureChangeRate > 0.55 as bot signal"
+      ],
+      "metricComparison": {
+        "reversalRatio": { "humans": "0-0.01", "bots": "0.29-0.61", "gap": "HUGE" },
+        "smoothRatio": { "humans": "0.62-0.85", "bots": "0.21-0.37", "gap": "HUGE" },
+        "curvatureChangeRate": { "humans": "0.23-0.41", "bots": "0.72-0.79", "gap": "HUGE" },
+        "hesitationRate": { "humans": "0-0.038", "bots": "0.015-0.034", "gap": "OVERLAP" }
+      },
+      "expectedImprovement": "Reduce false positives from 40% while maintaining 100% bot detection"
+    }
+  ]
+}
