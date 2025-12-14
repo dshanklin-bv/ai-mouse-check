@@ -79,6 +79,44 @@
         "curvatureChangeRate>0.55": { "humans": "0.20-0.41", "bots": "0.75-0.82", "gap": "HUGE - NO OVERLAP" }
       },
       "expectedImprovement": "Reduce false positives from 71.4% to <20% by raising threshold to 4 and relaxing overlapping signals. Bots still trigger 5+ signals so detection should remain 100%."
+    },
+    {
+      "version": 3,
+      "timestamp": 1734224320000,
+      "detectionVersion": "1.5.0 (NOT LOADED - server needs restart)",
+      "dataRange": {
+        "humanTests": 43,
+        "botTests": 18,
+        "humanPassed": 15,
+        "humanFailed": 28,
+        "botPassed": 0,
+        "botFailed": 18
+      },
+      "performance": {
+        "humanPassRate": "34.9%",
+        "botDetectionRate": "100%",
+        "falsePositiveRate": "65.1%",
+        "falseNegativeRate": "0%"
+      },
+      "keyFindings": [
+        "CRITICAL: Server running OLD code - all 61 results show detectionVersion='unknown'. v1.5.0 changes (threshold=4) NOT active!",
+        "Human signal distribution: 0sig(3), 1sig(7), 2sig(10), 3sig(14), 4sig(8), 5sig(1) - with v1.5.0 threshold=4, 14 more humans would pass bezier check",
+        "Bot signal distribution: 2sig(1), 3sig(9), 4sig(7), 5sig(1) - 1 bot has only 2 signals but fails on other checks (smoothRatio=0.27 < 0.3)",
+        "With v1.5.0: expected 67% pass rate (29/43) vs current 35% - but 5 humans with <4 signals still fail due to OTHER checks (not bezier)",
+        "All 15 passed humans have signal counts 0-2; all humans with 3+ signals failed"
+      ],
+      "changes": [
+        "NO CODE CHANGES - analysis only",
+        "RECOMMENDATION: Restart server to load v1.5.0 changes",
+        "RECOMMENDATION: Investigate why 5 humans with <4 signals are failing (other checks, not bezier)"
+      ],
+      "metricComparison": {
+        "bezierSignalCount (humans passed)": { "humans": "0-2", "bots": "N/A", "gap": "CLEAR" },
+        "bezierSignalCount (humans failed)": { "humans": "1-5", "bots": "2-5", "gap": "OVERLAP at 2-5" },
+        "threshold=3": { "humans": "23/43 fail (54%)", "bots": "17/18 detected", "gap": "TOO AGGRESSIVE" },
+        "threshold=4": { "humans": "9/43 fail (21%)", "bots": "8/18 detected", "gap": "BETTER FOR HUMANS" }
+      },
+      "expectedImprovement": "After server restart: ~67% human pass rate (up from 35%). Remaining failures are due to other checks (curves, timing, etc.), not bezier detection. Bot detection may drop from 100% to ~89% but 1 bot would fail anyway due to curves check."
     }
   ]
 }
