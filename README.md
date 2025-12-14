@@ -23,18 +23,11 @@ The system analyzes mouse movements in real-time using 7 detection checks that i
 
 ## Installation
 
-### Via npm
-```bash
-npm install ai-mouse-check
-```
+Download `ai-mouse-check.js` from this repository and include it in your project:
 
-### Via CDN
 ```html
-<script src="https://unpkg.com/ai-mouse-check/ai-mouse-check.min.js"></script>
+<script src="ai-mouse-check.js"></script>
 ```
-
-### Direct download
-Copy `ai-mouse-check.js` to your project.
 
 ## Usage
 
