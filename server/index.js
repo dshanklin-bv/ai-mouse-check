@@ -16,6 +16,28 @@ const fs = require('fs');
 const { analyzeMovement, generateSignature, verifySignature } = require('./detection');
 
 const MATRIX_FILE = path.join(__dirname, '..', 'confusion-matrix.json');
+const MOVEMENTS_DIR = path.join(__dirname, '..', 'movements');
+
+// Ensure movements directory exists
+if (!fs.existsSync(MOVEMENTS_DIR)) {
+  fs.mkdirSync(MOVEMENTS_DIR, { recursive: true });
+}
+
+/**
+ * Save movement data to a file
+ * @param {string} id - Unique identifier for this movement session
+ * @param {object} data - Movement data including points, isHuman, passed, etc.
+ */
+function saveMovement(id, data) {
+  const filename = path.join(MOVEMENTS_DIR, `${id}.json`);
+  try {
+    fs.writeFileSync(filename, JSON.stringify(data, null, 2));
+    return true;
+  } catch (e) {
+    console.error('Error saving movement:', e);
+    return false;
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3847;
@@ -228,11 +250,12 @@ app.get('/api/health', (req, res) => {
  * Request body:
  *   - isHuman: boolean (true if this was a human test, false if bot)
  *   - passed: boolean (true if the test passed verification)
+ *   - points: array of {x, y, t} movement points (optional but recommended)
  *   - metrics: object (optional metrics for analysis)
  */
 app.post('/api/record-result', (req, res) => {
   try {
-    const { isHuman, passed, metrics, detectionVersion, detectionConfig } = req.body;
+    const { isHuman, passed, points, metrics, detectionVersion, detectionConfig } = req.body;
 
     if (typeof isHuman !== 'boolean' || typeof passed !== 'boolean') {
       return res.status(400).json({
@@ -240,13 +263,32 @@ app.post('/api/record-result', (req, res) => {
       });
     }
 
+    const timestamp = Date.now();
+    const movementId = `${isHuman ? 'human' : 'bot'}_${passed ? 'pass' : 'fail'}_${timestamp}`;
+
     const record = {
-      timestamp: Date.now(),
+      timestamp,
       passed,
+      movementId,
       detectionVersion: detectionVersion || 'unknown',
       detectionConfig: detectionConfig || null,
-      metrics: metrics || {}
+      metrics: metrics || {},
+      pointCount: points ? points.length : 0
     };
+
+    // Save movement data to separate file if provided
+    if (points && Array.isArray(points) && points.length > 0) {
+      saveMovement(movementId, {
+        id: movementId,
+        isHuman,
+        passed,
+        timestamp,
+        detectionVersion: detectionVersion || 'unknown',
+        detectionConfig: detectionConfig || null,
+        metrics: metrics || {},
+        points
+      });
+    }
 
     if (isHuman) {
       if (passed) {
@@ -342,6 +384,93 @@ app.post('/api/reset-matrix', (req, res) => {
 
   saveConfusionMatrix();
   res.json({ success: true, message: 'Confusion matrix reset' });
+});
+
+/**
+ * GET /api/movements
+ * List all recorded movement sessions
+ *
+ * Query params:
+ *   - type: 'human', 'bot', or 'all' (default: 'all')
+ *   - result: 'pass', 'fail', or 'all' (default: 'all')
+ */
+app.get('/api/movements', (req, res) => {
+  try {
+    const { type = 'all', result = 'all' } = req.query;
+
+    const files = fs.readdirSync(MOVEMENTS_DIR)
+      .filter(f => f.endsWith('.json'))
+      .filter(f => {
+        if (type !== 'all') {
+          const isHuman = f.startsWith('human_');
+          if (type === 'human' && !isHuman) return false;
+          if (type === 'bot' && isHuman) return false;
+        }
+        if (result !== 'all') {
+          const passed = f.includes('_pass_');
+          if (result === 'pass' && !passed) return false;
+          if (result === 'fail' && passed) return false;
+        }
+        return true;
+      })
+      .sort()
+      .reverse(); // Most recent first
+
+    const movements = files.map(f => {
+      const id = f.replace('.json', '');
+      const parts = id.split('_');
+      return {
+        id,
+        isHuman: parts[0] === 'human',
+        passed: parts[1] === 'pass',
+        timestamp: parseInt(parts[2], 10)
+      };
+    });
+
+    res.json({
+      count: movements.length,
+      movements
+    });
+  } catch (error) {
+    console.error('List movements error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/movements/:id
+ * Get a specific movement session with full point data
+ */
+app.get('/api/movements/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const filename = path.join(MOVEMENTS_DIR, `${id}.json`);
+
+    if (!fs.existsSync(filename)) {
+      return res.status(404).json({ error: 'Movement not found' });
+    }
+
+    const data = JSON.parse(fs.readFileSync(filename, 'utf8'));
+    res.json(data);
+  } catch (error) {
+    console.error('Get movement error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/movements
+ * Delete all movement files (called with reset-matrix optionally)
+ */
+app.delete('/api/movements', (req, res) => {
+  try {
+    const files = fs.readdirSync(MOVEMENTS_DIR).filter(f => f.endsWith('.json'));
+    files.forEach(f => fs.unlinkSync(path.join(MOVEMENTS_DIR, f)));
+    res.json({ success: true, deleted: files.length });
+  } catch (error) {
+    console.error('Delete movements error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Start server

@@ -1128,13 +1128,14 @@
           : '👤 Human <span style="color: #f85149;">BLOCKED</span>';
       }
 
-      // Record to confusion matrix
+      // Record to confusion matrix (including movement points for study)
       fetch('/api/record-result', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isHuman: !wasBot,
           passed: passed,
+          points: movementData,
           metrics: result.metrics,
           detectionVersion: result.detectionVersion,
           detectionConfig: result.detectionConfig
