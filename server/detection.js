@@ -10,7 +10,7 @@
 const crypto = require('crypto');
 
 // Detection version - increment when changing thresholds or signals
-const DETECTION_VERSION = '1.5.0';
+const DETECTION_VERSION = '1.6.0';
 const DETECTION_CONFIG = {
   signalThreshold: 4,              // Fail if 4+ signals trigger (raised from 3)
   thresholds: {
@@ -63,7 +63,9 @@ function analyzeMovement(points, options = {}) {
       reason: 'insufficient_data',
       checks,
       checksPassed: 0,
-      aiDetected: false
+      aiDetected: false,
+      detectionVersion: DETECTION_VERSION,
+      detectionConfig: DETECTION_CONFIG
     };
   }
 
@@ -584,7 +586,13 @@ function analyzeMovement(points, options = {}) {
     curvatureChangeRate > 0.55       // 17: HIGH curvature change = BOT (0/14 humans, 11/11 bots)
   ];
   const bezierSignalCount = bezierSignals.filter(Boolean).length;
-  const isBezierLike = bezierSignalCount >= 4; // Fail if 4+ signals (raised from 3)
+
+  // Count strong signals (15, 16, 17) - these have ZERO overlap with humans
+  // v1.6.0: If 2+ strong signals trigger, it's definitely a bot (0 humans have 2+ strong signals)
+  const strongSignalCount = [bezierSignals[15], bezierSignals[16], bezierSignals[17]].filter(Boolean).length;
+  const hasStrongBotSignature = strongSignalCount >= 2;
+
+  const isBezierLike = bezierSignalCount >= 4 || hasStrongBotSignature; // Fail if 4+ signals OR 2+ strong signals
 
   const isTimingTooRegular = timingCV < 0.12;
 
@@ -639,6 +647,8 @@ function analyzeMovement(points, options = {}) {
       smoothStartRatio,
       fidgetRatio,
       bezierSignalCount,
+      strongSignalCount,
+      hasStrongBotSignature,
       isBezierLike,
       isTimingTooRegular,
       // v1.4.0: Signal trigger details for debugging

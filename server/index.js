@@ -162,7 +162,9 @@ app.post('/api/verify', (req, res) => {
         timestamp: sigData.timestamp,
         checks: result.checks,
         checksPassed: result.checksPassed,
-        metrics: result.metrics
+        metrics: result.metrics,
+        detectionVersion: result.detectionVersion,
+        detectionConfig: result.detectionConfig
       });
     }
 
@@ -173,7 +175,9 @@ app.post('/api/verify', (req, res) => {
       checks: result.checks,
       checksPassed: result.checksPassed,
       reason: result.reason || 'checks_failed',
-      metrics: result.metrics
+      metrics: result.metrics,
+      detectionVersion: result.detectionVersion,
+      detectionConfig: result.detectionConfig
     });
 
   } catch (error) {
